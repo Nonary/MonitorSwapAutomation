@@ -1,16 +1,37 @@
-﻿# The ID after MONITOR\{ID}\
-# Example: MONITOR\GSMC0C8\{4d36e96e-e325-11ce-bfc1-08002be10318}\0002
-$primaryMonitor = "GSMC0C8"
+﻿#
 $primarySerial = "LGTV"
 $dummySerial = "DUMMY"
 # How many seconds to wait after a stream is suspended/terminated before swapping back.
 $gracePeroid = 30
-$configSaveLocation = "C:\tools\monitorinfo.ini"
+$configSaveLocation = ".\monitorinfo.ini"
 
 function OnStreamStart() {
     Write-Output "Dummy plug activated"
     & .\MultiMonitorTool.exe /SetPrimary /enable $dummySerial
-    & .\MultiMonitorTool.exe /disable $primarySerial
+    DisableOtherDisplays
+}
+
+function DisableOtherDisplays() {
+    & .\MultiMonitorTool.exe /SaveConfig $configSaveLocation
+    $monitorConfigLines = (Get-Content -Path $configSaveLocation | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
+    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
+        $serial = ($monitorConfigLines[$i + 1] -split "=") | Select-Object -Last 1
+
+        if ($serial -ne $dummySerial) {
+            $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
+            $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
+            $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
+
+            # Let's just go ahead and disable every other display.
+             if($height -ne 0 -and $width -ne 0 -and $refresh -ne 0){
+                & .\MultiMonitorTool.exe /disable $serial
+             }
+        }
+        else {
+            # Its not necessary to check the next four lines because its not the monitor we want.
+            $i += 4
+        }
+    }
 }
 
 function PrimaryScreenIsActive() {
@@ -18,26 +39,40 @@ function PrimaryScreenIsActive() {
     # This will continually poll the configuration to make sure the display has been set.
 
     & .\MultiMonitorTool.exe /SaveConfig $configSaveLocation
-    $content = (Get-Content -Path $configSaveLocation | Select-String "MonitorID=.*|Width.*|Height.*|DisplayFrequency.*")
-    for ($i = 0; $i -lt $content.Count; $i++) {
-        $element = $content[$i]
+    $monitorConfigLines = (Get-Content -Path $configSaveLocation | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
+    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
+        $serial = ($monitorConfigLines[$i + 1] -split "=") | Select-Object -Last 1
 
-        if ($element.ToString().Contains($primaryMonitor)) {
-            $w = ($content[$i + 1] -split "=") | Select-Object -Last 1
-            $h = ($content[$i + 2] -split "=") | Select-Object -Last 1
-            $r = ($content[$i + 3] -split "=") | Select-Object -Last 1
+        if ($serial -eq $primarySerial) {
+            $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
+            $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
+            $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
 
-            return ($h -ne 0 -and $w -ne 0) -and $r -eq 120
-            Write-Host "$w $h $r"
+            # Inactive displays will be zero on everything basically.
+            return  ($height -ne 0 -and $width -ne 0 -and $refresh -ne 0)
+        }
+        else {
+            # Its not necessary to check the next four lines because its not the monitor we want.
+            $i += 4
         }
     }
 
     return $false
 }
 
+function RestoreMonitorPositions() {
+    # Disabling monitors causes the monitor positions to change, so let's just load what the user had originally.
+    & .\MultiMonitorTool.exe /LoadConfig ".\monitor-config.cfg"
+}
+
+function CaptureMonitorPositions() {
+    # Export the users monitor configuration so it can be restored later.
+    & .\MultiMonitorTool.exe /SaveConfig ".\monitor-config.cfg"
+}
+
 function SetPrimaryScreen() {
     Write-Host "Attempting to set primary screen"
-    if(IsCurrentlyStreaming){
+    if (IsCurrentlyStreaming) {
         return "No Operating Necessary Because already streaming"
     }
     ./MultiMonitorTool.exe /SetPrimary /enable $primarySerial
@@ -50,13 +85,15 @@ function OnStreamEnd() {
     for ($i = 0; $i -lt 100000000; $i++) {
         try {
 
+            # To prevent massive performance hitches to users when streaming, we're breaking here in the event they started streaming again.
             if (IsCurrentlyStreaming) {
                 break;
-                return;
             }
             
             SetPrimaryScreen
 
+            # Some displays will not activate until the user returns back to their PC and wakes up the display.
+            # So start an infinite loop to check and set that.
             if (!(PrimaryScreenIsActive)) {
                 SetPrimaryScreen
             }
@@ -66,14 +103,15 @@ function OnStreamEnd() {
             
         }
         catch {
-            ## Do Nothing
+            ## Do Nothing, because we're expecting it to fail in cases like when user has a TV as a primary display.
         }
         finally {
             Start-Sleep -Seconds 5
         }
     }
 
-    Write-Host "Dummy Plug Deactivated!"
+    Write-Host "Dummy Plug Deactivated, Restoring original monitor configuration!"
+    RestoreMonitorPositions
 
 
 }
@@ -104,6 +142,7 @@ function IsAboutToStartStreaming() {
 $streamStartEvent = $false
 $streamEndEvent = $false
 $lastStreamed = Get-Date
+CaptureMonitorPositions
 
 while ($true) {
     $streaming = (IsAboutToStartStreaming) -or (IsCurrentlyStreaming)
