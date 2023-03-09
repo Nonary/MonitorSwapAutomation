@@ -1,52 +1,26 @@
-$primarySerial = "LGTV"
-$dummySerial = "DUMMY"
+﻿$primaryMonitorId = "MONITOR\GSMC0C8\{4d36e96e-e325-11ce-bfc1-08002be10318}\0009"
 # How many seconds to wait after a stream is suspended/terminated before swapping back.
 $gracePeroid = 30
 $configSaveLocation = $env:TEMP
 
+
 function OnStreamStart() {
-    if (PrimaryScreenIsActive) {
-        CaptureMonitorPositions
-    }
     Write-Output "Dummy plug activated"
-    & .\MultiMonitorTool.exe /SetPrimary /enable $dummySerial
-    DisableOtherDisplays
+    & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
 }
 
-function DisableOtherDisplays() {
-    & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\monitorinfo.ini"
-    Start-Sleep -Seconds 1
-    $monitorConfigLines = (Get-Content -Path "$configSaveLocation\monitorinfo.ini" | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
-    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
-        $serial = ($monitorConfigLines[$i + 1] -split "=") | Select-Object -Last 1
-
-        if ($serial -ne $dummySerial) {
-            $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
-            $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
-            $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
-
-            # Let's just go ahead and disable every other display.
-            if ($height -ne 0 -and $width -ne 0 -and $refresh -ne 0) {
-                & .\MultiMonitorTool.exe /disable $serial
-             }
-        }
-        else {
-            # Its not necessary to check the next four lines because its not the monitor we want.
-            $i += 4
-        }
-    }
-}
 
 function PrimaryScreenIsActive() {
     # For some displays, the primary screen can't be set until it wakes up from sleep.
     # This will continually poll the configuration to make sure the display has been set.
 
-    & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\monitorinfo.ini"
-    $monitorConfigLines = (Get-Content -Path "$configSaveLocation\monitorinfo.ini" | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
+    & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\current_monitor_config.cfg"
+    Start-Sleep -Seconds 1
+    $monitorConfigLines = (Get-Content -Path "$configSaveLocation\current_monitor_config.cfg" | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
     for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
-        $serial = ($monitorConfigLines[$i + 1] -split "=") | Select-Object -Last 1
+        $monitorId = ($monitorConfigLines[$i] -split "=") | Select-Object -Last 1
 
-        if ($serial -eq $primarySerial) {
+        if ($monitorId -eq $primaryMonitorId) {
             $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
             $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
             $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
@@ -63,24 +37,16 @@ function PrimaryScreenIsActive() {
     return $false
 }
 
-function RestoreMonitorPositions() {
-    # Disabling monitors causes the monitor positions to change, so let's just load what the user had originally.
-    & .\MultiMonitorTool.exe /LoadConfig "$configSaveLocation\monitor-config.cfg"
-}
-
-function CaptureMonitorPositions() {
-    # Export the users monitor configuration so it can be restored later.
-    & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\monitor-config.cfg"
-}
-
 function SetPrimaryScreen() {
     Write-Host "Attempting to set primary screen"
     if (IsCurrentlyStreaming) {
         return "No Operating Necessary Because already streaming"
     }
-    ./MultiMonitorTool.exe /SetPrimary /enable $primarySerial
+
+    & .\MultiMonitorTool.exe /LoadConfig "primary.cfg"
+    
+
     Start-Sleep -Milliseconds 750
-    & .\MultiMonitorTool.exe  /disable $dummySerial
 }
 
 function OnStreamEnd() {
@@ -108,13 +74,10 @@ function OnStreamEnd() {
         catch {
             ## Do Nothing, because we're expecting it to fail in cases like when user has a TV as a primary display.
         }
-        finally {
-            Start-Sleep -Seconds 5
-        }
+        Start-Sleep -Seconds 5
     }
 
     Write-Host "Dummy Plug Deactivated, Restoring original monitor configuration!"
-    RestoreMonitorPositions
 
 
 }
