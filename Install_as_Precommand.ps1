@@ -32,7 +32,6 @@
 ## Repeat the same prompt principles, and basically 70% of this script is entirely written by Artificial Intelligence. Yay!
 
 ## Refactor Prompt (GPT-4): Please refactor the following code, remove duplication and define better function names, once finished you will also add documentation and comments to each function.
-param($scriptPath)
 
 
 
@@ -44,39 +43,15 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().grou
 
 # If the current user is not an administrator, re-launch the script with elevated privileges
 if (-not $isAdmin) {
-    Start-Process powershell.exe  -Verb RunAs -ArgumentList "-ExecutionPolicy bypass -NoExit -File `"$($MyInvocation.MyCommand.Path)`" `"$(Join-Path -Path (Get-Location) -ChildPath "MonitorSwap-Dummy.ps1")`" $($MyInvocation.MyCommand.UnboundArguments)"
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments)"
     exit
 }
 
 # Define the path to the Sunshine configuration file
 $confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
-$settings = ConvertFrom-Json ([string](Get-Content -Path "$(Split-Path $scriptPath -Parent)/settings.json"))
-$scriptRoot = Split-Path $scriptPath -Parent
 
-
-
-function FillOut-VariableOnPowerShellScript($scriptFilePath, $variableName, $value) {
-    # Define the path to the file you want to modify
-
-    # Define the regular expression to search for and the new value you want to replace it with
-    $searchPattern = "(\`$$variableName\s*=\s*)`"([^`"]*)`""
-
-    # Read the contents of the file into a variable
-    $content = Get-Content $scriptFilePath
-    
-
-    # Loop through each line in the file
-    for ($i = 0; $i -lt $content.Count; $i++) {
-        # If the current line matches the search pattern, replace it with the new value
-        if ($content[$i] -match $searchPattern) {
-            $content[$i] = $content[$i] -replace $searchPattern, "`$1`"$value`""
-        }
-    }
-
-    # Write the modified contents back to the file
-    $content | Set-Content $scriptFilePath
-
-}
+# Define the path to the MonitorSwap-Dummy script
+$scriptPath = Join-Path -Path (Get-Location) -ChildPath "MonitorSwap-Dummy.ps1"
 
 # Get the current value of global_prep_cmd from the configuration file
 function Get-GlobalPrepCommand {
@@ -97,7 +72,7 @@ function Get-GlobalPrepCommand {
         return $matches[1]
     }
     else {
-        Write-Information "Unable to extract current value of global_prep_cmd, this probably means the user has not setup prep commands yet."
+        Write-Error "Unable to extract current value of global_prep_cmd"
         return [object[]]@()
     }
 }
@@ -115,17 +90,16 @@ function Remove-MonitorSwapCommand {
 
     # Convert the JSON string to an array of objects
     $globalPrepCmdArray = $globalPrepCmdJson | ConvertFrom-Json
-    $filteredCommands = @()
 
     # Loop through the array in reverse order and remove any commands that contain MonitorSwap-Dummy
     for ($i = $globalPrepCmdArray.Count - 1; $i -ge 0; $i--) {
-        if (-not ($globalPrepCmdArray[$i].do -like "*MonitorSwap-Dummy*")) {
-            $filteredCommands += $globalPrepCmdArray[$i]
+        if ($globalPrepCmdArray[$i] -contains "MonitorSwap-Dummy") {
+            $globalPrepCmdArray.RemoveAt($i)
         }
     }
 
     # Return the modified array of objects
-    return [object[]] $filteredCommands
+    return [object[]] $globalPrepCmdArray
 }
 
 # Set a new value for global_prep_cmd in the configuration file
@@ -177,13 +151,14 @@ function Add-MonitorSwapCommand {
     )
 
     # Remove any existing commands that contain MonitorSwap-Dummy from the global_prep_cmd value
-    [object[]]$globalPrepCmdArray = Remove-MonitorSwapCommand -ConfigPath $ConfigPath
+    [object[]]$globalPrep
+    CmdArray = Remove-MonitorSwapCommand -ConfigPath $ConfigPath
 
     # Create a new object with the command to run MonitorSwap-Dummy.ps1
     $monitorSwapCommand = [PSCustomObject]@{
         do       = "powershell.exe -executionpolicy bypass -file `"$($ScriptPath)`""
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\MonitorSwap-Functions.ps1`" $true"
+        undo     = "conhost.exe /b 0"
     }
 
     # Add the new object to the global_prep_cmd array
@@ -193,10 +168,7 @@ function Add-MonitorSwapCommand {
     Set-GlobalPrepCommand -ConfigPath $ConfigPath -Value $globalPrepCmdArray
 }
 
-FillOut-VariableOnPowerShellScript -variableName "path" -value $scriptRoot -scriptFilePath $scriptPath
-FillOut-VariableOnPowerShellScript -variableName "path" -value $scriptRoot -scriptFilePath "$scriptRoot/MonitorSwap-Functions.ps1"
 # Invoke the function to add the MonitorSwap-Dummy command
 Add-MonitorSwapCommand -ConfigPath $confPath -ScriptPath $scriptPath
 
-Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
