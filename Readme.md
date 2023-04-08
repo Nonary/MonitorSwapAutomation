@@ -12,7 +12,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 
 ### For GFE users
 
-- This script no longer supports GFE, but you can retrieve a legacy version of this script by downloading this release: https://github.com/Nonary/MonitorSwapAutomation/releases/tag/legacy
+- This script no longer supports GFE, but you can retrieve a legacy version of this script by downloading this release: <url_pending>
 
 ### For Sunshine users
 - Version 0.19.1 or higher
@@ -54,7 +54,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 
 4. Verify that in both `primary.cfg` and `dummy.cfg` that only **one** display contains values for the `BitsPerPixel`, `Width`, `Height`, and so on.
 5. Basically, primary will "zero out" the dummy plug, and dummy will "zero out" the main display. The reason is so that the windows transfer back automatically to the other screen when swapping profiles.
-6. In the `primary.cfg` file, locate your primary `MonitorId` and copy and paste it to the `primaryMonitorId` key in the settings.json file. 
+6. In the `MonitorSwap-Dummy.ps1` file, locate your primary `MonitorId` and copy and paste it to the `primaryMonitorId` key in the settings.json file. 
     For example:
     ```
     {
@@ -65,6 +65,11 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
     ```
 
     Please make sure to escape the back slashes, as single slashes will not work in JSON.
+
+7. Install the script by right-clicking the `Install_as_Precommand.ps1` and selecting "Run with PowerShell".
+8. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
+9. Verify that the sunshine.conf file is configured properly, if successful the global_prep_cmd should look like this
+    global_prep_cmd = [{"do":"powershell.exe -executionpolicy bypass -file \"{PATH_TO_FOLDER}\\MonitorSwap-Dummy.ps1\"","elevated":"false","undo":"powershell.exe -executionpolicy bypass -command \"New-Item $env:TEMP/stream_ended.txt\""}]
 
 7. Install the script by right-clicking the `Install_as_Precommand.ps1` and selecting "Run with PowerShell".
 8. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
