@@ -1,12 +1,19 @@
-﻿$primaryMonitorId = "MONITOR\GSMC0C8\{4d36e96e-e325-11ce-bfc1-08002be10318}\0009"
-# How many seconds to wait after a stream is suspended/terminated before swapping back.
-$gracePeroid = 30
-$configSaveLocation = $env:TEMP
+param($async)
+$path = "F:\sources\MonitorSwapAutomation"
 
+# Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
+if ($null -eq $async) {
+    Start-Process powershell.exe  -ArgumentList "-File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
+    # Need to give it enough time to activate the display.
+    Start-Sleep -Seconds 2
+    exit
+}
+
+Set-Location $path
 
 function OnStreamStart() {
     Write-Output "Dummy plug activated"
-    & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
+    & .\MultiMonitorTool.exe /LoadConfig ".\dummy.cfg" 
 }
 
 
@@ -43,7 +50,7 @@ function SetPrimaryScreen() {
         return "No Operating Necessary Because already streaming"
     }
 
-    & .\MultiMonitorTool.exe /LoadConfig "primary.cfg"
+    & .\MultiMonitorTool.exe /LoadConfig ".\primary.cfg"
     
 
     Start-Sleep -Milliseconds 750
@@ -109,23 +116,37 @@ $streamStartEvent = $false
 $streamEndEvent = $false
 $lastStreamed = Get-Date
 
+$settings = ConvertFrom-Json ([string](Get-Content -Path "$path/settings.json"))
+
+$gracePeroid = $settings.gracePeriod
+$configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
+$primaryMonitorId = $settings.primaryMonitorId
+
 while ($true) {
-    $streaming = (IsAboutToStartStreaming) -or (IsCurrentlyStreaming)
+    $streaming = ((IsCurrentlyStreaming) -or ($streamStartEvent -eq $false))
+   
 
     if ($streaming) {
         $lastStreamed = Get-Date
         if (!($streamStartEvent)) {
             OnStreamStart
+            Remove-Item "$configSaveLocation/stream_ended.txt" -ErrorAction Ignore
             $streamStartEvent = $true
             $streamEndEvent = $true
         }
-        
+    }
+    elseif (Test-Path "$configSaveLocation/stream_ended.txt") {
+        OnStreamEnd
+        Remove-Item "$configSaveLocation/stream_ended.txt"
+        break;
     }
     else {
         if ($streamEndEvent -and ((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeroid) {
             OnStreamEnd
             $streamStartEvent = $false
             $streamEndEvent = $false
+            Remove-Item "$configSaveLocation/stream_ended.txt" -ErrorAction Ignore
+            break;
         }
 
     }
