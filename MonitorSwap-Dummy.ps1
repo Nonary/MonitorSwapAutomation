@@ -1,5 +1,5 @@
-param($async)
-$path = "F:\sources\MonitorSwapAutomation"
+﻿param($async)
+$path = "Please run the Install_as_Precommand.ps1 script to finish the setup of this script."
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
@@ -11,144 +11,84 @@ if ($null -eq $async) {
 
 Set-Location $path
 
-function OnStreamStart() {
-    Write-Output "Dummy plug activated"
-    & .\MultiMonitorTool.exe /LoadConfig ".\dummy.cfg" 
+. $path\MonitorSwap-Functions.ps1
+
+
+$mutexName = "MonitorSwapper"
+$global:monitorSwapMutex = New-Object System.Threading.Mutex($false, $mutexName)
+
+# There is no need to have more than one of these scripts running.
+if (-not $global:monitorSwapMutex.WaitOne(0)) {
+    Write-Host "Another instance of the script is already running. Exiting..."
+    exit
 }
 
+# Asynchronously start the monitor swapper, so we can use a named pipe to terminate it.
+Start-Job -Name MonitorSwapJob -ScriptBlock {
+    param($path)
+    . $path\MonitorSwap-Functions.ps1
+    $lastStreamed = Get-Date
 
-function PrimaryScreenIsActive() {
-    # For some displays, the primary screen can't be set until it wakes up from sleep.
-    # This will continually poll the configuration to make sure the display has been set.
 
-    & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\current_monitor_config.cfg"
-    Start-Sleep -Seconds 1
-    $monitorConfigLines = (Get-Content -Path "$configSaveLocation\current_monitor_config.cfg" | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
-    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
-        $monitorId = ($monitorConfigLines[$i] -split "=") | Select-Object -Last 1
-
-        if ($monitorId -eq $primaryMonitorId) {
-            $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
-            $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
-            $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
-
-            # Inactive displays will be zero on everything basically.
-            return  ($height -ne 0 -and $width -ne 0 -and $refresh -ne 0)
+    Register-EngineEvent -SourceIdentifier MonitorSwapper -Forward
+    New-Event -SourceIdentifier MonitorSwapper -MessageData { OnStreamStart }
+    while ($true) {
+        if ((IsCurrentlyStreaming)) {
+            $lastStreamed = Get-Date
         }
         else {
-            # Its not necessary to check the next four lines because its not the monitor we want.
-            $i += 4
-        }
-    }
-
-    return $false
-}
-
-function SetPrimaryScreen() {
-    Write-Host "Attempting to set primary screen"
-    if (IsCurrentlyStreaming) {
-        return "No Operating Necessary Because already streaming"
-    }
-
-    & .\MultiMonitorTool.exe /LoadConfig ".\primary.cfg"
-    
-
-    Start-Sleep -Milliseconds 750
-}
-
-function OnStreamEnd() {
-
-    for ($i = 0; $i -lt 100000000; $i++) {
-        try {
-
-            # To prevent massive performance hitches to users when streaming, we're breaking here in the event they started streaming again.
-            if (IsCurrentlyStreaming) {
+            # Grace period is dot sourced here from MonitorSwap-Functions.ps1
+            if (((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeroid) {
+                Write-Output "Ending the stream script"
+                New-Event -SourceIdentifier MonitorSwapper -MessageData { OnStreamEnd; break }
                 break;
             }
-            
-            SetPrimaryScreen
-
-            # Some displays will not activate until the user returns back to their PC and wakes up the display.
-            # So start an infinite loop to check and set that.
-            if (!(PrimaryScreenIsActive)) {
-                SetPrimaryScreen
-            }
-            else {
-                break
-            }
-            
+    
         }
-        catch {
-            ## Do Nothing, because we're expecting it to fail in cases like when user has a TV as a primary display.
-        }
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds 1
     }
+    
+} -ArgumentList $path
 
-    Write-Host "Dummy Plug Deactivated, Restoring original monitor configuration!"
 
+# To allow other powershell scripts to communicate to this one.
+Start-Job -Name NamedPipeJob -ScriptBlock {
+    $pipeName = "MonitorSwapper"
+    $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
 
-}
+    $streamReader = New-Object System.IO.StreamReader($pipe)
+    Write-Output "Waiting for named pipe to recieve kill command"
+    $pipe.WaitForConnection()
 
-function IsSunshineUser() {
-    return $null -ne (Get-Process sunshine -ErrorAction SilentlyContinue)
-}
-
-function IsCurrentlyStreaming() {
-    if (IsSunshineUser) {
-        return $null -ne (Get-NetUDPEndpoint -OwningProcess (Get-Process sunshine).Id -ErrorAction Ignore)
+    $message = $streamReader.ReadLine()
+    if ($message -eq "Terminate") {
+        Write-Output "Terminating pipe..."
+        $pipe.Dispose()
+        $streamReader.Dispose()
     }
-
-    return $null -ne (Get-Process nvstreamer -ErrorAction SilentlyContinue)
-}
-
-function IsAboutToStartStreaming() {
-    # The difference with this function is that it checks to see if user recently queried the application list on the host.
-    # Useful in scenarios where a script must run prior to starting a stream.
-    # Sunshine already supports this functionaly, Geforce Experience does not.
-
-    $connectionDetected = & netstat -a -i -n | Select-String 47989 | Where-Object { $_ -like '*TIME_WAIT*' } 
-    [int] $duration = $connectionDetected -split " " | Where-Object { $_ } | Select-Object -Last 1
-    return $null -ne $connectionDetected -and $duration -lt 1750
 }
 
 
-$streamStartEvent = $false
-$streamEndEvent = $false
-$lastStreamed = Get-Date
 
-$settings = ConvertFrom-Json ([string](Get-Content -Path "$path/settings.json"))
 
-$gracePeroid = $settings.gracePeriod
-$configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
-$primaryMonitorId = $settings.primaryMonitorId
+
 
 while ($true) {
-    $streaming = ((IsCurrentlyStreaming) -or ($streamStartEvent -eq $false))
-   
-
-    if ($streaming) {
-        $lastStreamed = Get-Date
-        if (!($streamStartEvent)) {
-            OnStreamStart
-            Remove-Item "$configSaveLocation/stream_ended.txt" -ErrorAction Ignore
-            $streamStartEvent = $true
-            $streamEndEvent = $true
-        }
+    Start-Sleep -Seconds 1
+    $eventFired = Get-Event -SourceIdentifier MonitorSwapper -ErrorAction SilentlyContinue
+    $pipeJob = Get-Job -Name "NamedPipeJob"
+    if ($null -ne $eventFired) {
+        Write-Host "Processing event..."
+        $eventData = [scriptblock]::Create($eventFired.MessageData)
+        $eventData.Invoke()
+        Remove-Event -SourceIdentifier MonitorSwapper
     }
-    elseif (Test-Path "$configSaveLocation/stream_ended.txt") {
+    elseif ($pipeJob.State -eq "Completed") {
+        Write-Host "Stopping the monitor swap script, please be advised that the script may still run until the primary screen has been set."
         OnStreamEnd
-        Remove-Item "$configSaveLocation/stream_ended.txt"
         break;
     }
     else {
-        if ($streamEndEvent -and ((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeroid) {
-            OnStreamEnd
-            $streamStartEvent = $false
-            $streamEndEvent = $false
-            Remove-Item "$configSaveLocation/stream_ended.txt" -ErrorAction Ignore
-            break;
-        }
-
+        Write-Host "Waiting for next event..."
     }
-    Start-Sleep -Seconds 1
 }

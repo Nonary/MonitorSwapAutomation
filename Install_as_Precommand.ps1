@@ -51,17 +51,18 @@ if (-not $isAdmin) {
 # Define the path to the Sunshine configuration file
 $confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
 $settings = ConvertFrom-Json ([string](Get-Content -Path "$(Split-Path $scriptPath -Parent)/settings.json"))
+$scriptRoot = Split-Path $scriptPath -Parent
 
 
 
-function FillOut-VariableOnMainScript($variableName, $value) {
+function FillOut-VariableOnPowerShellScript($scriptFilePath, $variableName, $value) {
     # Define the path to the file you want to modify
 
     # Define the regular expression to search for and the new value you want to replace it with
     $searchPattern = "(\`$$variableName\s*=\s*)`"([^`"]*)`""
 
     # Read the contents of the file into a variable
-    $content = Get-Content $scriptPath
+    $content = Get-Content $scriptFilePath
     
 
     # Loop through each line in the file
@@ -73,7 +74,7 @@ function FillOut-VariableOnMainScript($variableName, $value) {
     }
 
     # Write the modified contents back to the file
-    $content | Set-Content $scriptPath
+    $content | Set-Content $scriptFilePath
 
 }
 
@@ -182,7 +183,7 @@ function Add-MonitorSwapCommand {
     $monitorSwapCommand = [PSCustomObject]@{
         do       = "powershell.exe -executionpolicy bypass -file `"$($ScriptPath)`""
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -command `"New-Item $($settings.configSaveLocation)/stream_ended.txt`""
+        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\MonitorSwap-Functions.ps1`" $true"
     }
 
     # Add the new object to the global_prep_cmd array
@@ -192,8 +193,10 @@ function Add-MonitorSwapCommand {
     Set-GlobalPrepCommand -ConfigPath $ConfigPath -Value $globalPrepCmdArray
 }
 
-FillOut-VariableOnMainScript -variableName "path" -value (Split-Path $scriptPath -Parent)
+FillOut-VariableOnPowerShellScript -variableName "path" -value $scriptRoot -scriptFilePath $scriptPath
+FillOut-VariableOnPowerShellScript -variableName "path" -value $scriptRoot -scriptFilePath "$scriptRoot/MonitorSwap-Functions.ps1"
 # Invoke the function to add the MonitorSwap-Dummy command
 Add-MonitorSwapCommand -ConfigPath $confPath -ScriptPath $scriptPath
 
+Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
