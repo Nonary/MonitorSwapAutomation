@@ -1,5 +1,5 @@
-param($async)
-$path = "F:\sources\MonitorSwapAutomation"
+﻿param($async)
+$path = "Please run the Install_as_Precommand.ps1 script to finish the setup of this script."
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
@@ -7,13 +7,6 @@ if ($null -eq $async) {
     # Need to give it enough time to activate the display.
     Start-Sleep -Seconds 2
     exit
-}
-
-Set-Location $path
-
-function OnStreamStart() {
-    Write-Output "Dummy plug activated"
-    & .\MultiMonitorTool.exe /LoadConfig ".\dummy.cfg" 
 }
 
 Set-Location $path
@@ -44,33 +37,10 @@ Start-Job -Name MonitorSwapJob -ScriptBlock {
             $lastStreamed = Get-Date
         }
         else {
-            # Its not necessary to check the next four lines because its not the monitor we want.
-            $i += 4
-        }
-    }
-
-    return $false
-}
-
-function SetPrimaryScreen() {
-    Write-Host "Attempting to set primary screen"
-    if (IsCurrentlyStreaming) {
-        return "No Operating Necessary Because already streaming"
-    }
-
-    & .\MultiMonitorTool.exe /LoadConfig ".\primary.cfg"
-    
-
-    Start-Sleep -Milliseconds 750
-}
-
-function OnStreamEnd() {
-
-    for ($i = 0; $i -lt 100000000; $i++) {
-        try {
-
-            # To prevent massive performance hitches to users when streaming, we're breaking here in the event they started streaming again.
-            if (IsCurrentlyStreaming) {
+            # Grace period is dot sourced here from MonitorSwap-Functions.ps1
+            if (((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeroid) {
+                Write-Output "Ending the stream script"
+                New-Event -SourceIdentifier MonitorSwapper -MessageData { OnStreamEnd; break }
                 break;
             }
     
@@ -103,39 +73,22 @@ Start-Job -Name NamedPipeJob -ScriptBlock {
 
 
 
-$settings = ConvertFrom-Json ([string](Get-Content -Path "$path/settings.json"))
-
-$gracePeroid = $settings.gracePeriod
-$configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
-$primaryMonitorId = $settings.primaryMonitorId
-
 while ($true) {
-    $streaming = ((IsCurrentlyStreaming) -or ($streamStartEvent -eq $false))
-   
-
-    if ($streaming) {
-        $lastStreamed = Get-Date
-        if (!($streamStartEvent)) {
-            OnStreamStart
-            Remove-Item "$configSaveLocation/stream_ended.txt" -ErrorAction Ignore
-            $streamStartEvent = $true
-            $streamEndEvent = $true
-        }
+    Start-Sleep -Seconds 1
+    $eventFired = Get-Event -SourceIdentifier MonitorSwapper -ErrorAction SilentlyContinue
+    $pipeJob = Get-Job -Name "NamedPipeJob"
+    if ($null -ne $eventFired) {
+        Write-Host "Processing event..."
+        $eventData = [scriptblock]::Create($eventFired.MessageData)
+        $eventData.Invoke()
+        Remove-Event -SourceIdentifier MonitorSwapper
     }
-    elseif (Test-Path "$configSaveLocation/stream_ended.txt") {
+    elseif ($pipeJob.State -eq "Completed") {
+        Write-Host "Stopping the monitor swap script, please be advised that the script may still run until the primary screen has been set."
         OnStreamEnd
-        Remove-Item "$configSaveLocation/stream_ended.txt"
         break;
     }
     else {
-        if ($streamEndEvent -and ((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeroid) {
-            OnStreamEnd
-            $streamStartEvent = $false
-            $streamEndEvent = $false
-            Remove-Item "$configSaveLocation/stream_ended.txt" -ErrorAction Ignore
-            break;
-        }
-
+        Write-Host "Waiting for next event..."
     }
-    Start-Sleep -Seconds 1
 }
