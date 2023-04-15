@@ -97,7 +97,7 @@ function Get-GlobalPrepCommand {
         return $matches[1]
     }
     else {
-        Write-Error "Unable to extract current value of global_prep_cmd"
+        Write-Information "Unable to extract current value of global_prep_cmd, this probably means the user has not setup prep commands yet."
         return [object[]]@()
     }
 }
