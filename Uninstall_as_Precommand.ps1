@@ -1,37 +1,3 @@
-## Fun fact, most of this code is generated entirely using GPT-3.5
-
-## CHATGPT PROMPT 1
-## Explain to me how to parse a conf file in PowerShell.
-
-## AI EXPLAINS HOW... this is important as it invokes reflective thinking.
-## Having AI explain things to us first before asking 
-## your question, significantly improves the quality of the response.
-
-
-### PROMPT 2
-### Okay, using this conf, can you write a powershell script that saves a new value to the global_prep_cmd?
-
-### AI Generates valid code for saving to conf file
-
-## Prompt 3
-### I think I have found a mistake, can you double check your work?
-
-## Again, this is important for reflective thinking, having the AI
-## check its work is important, as it may improve quality. 
-
-## Response: Did not find any errors.
-
-## Prompt 4: I tried this and unfortunately my config file requires admin to save.
-
-## AI Responses solutions
-
-## Like before, I already knew the solution but having the AI
-## respond with tips, greatly improves the quality of the next prompts
-
-## Prompt 5 (Final with GPT3.5): Can you make this script self elevate itself.
-## Repeat the same prompt principles, and basically 70% of this script is entirely written by Artificial Intelligence. Yay!
-
-## Refactor Prompt (GPT-4): Please refactor the following code, remove duplication and define better function names, once finished you will also add documentation and comments to each function.
 param($scriptPath)
 
 
@@ -50,7 +16,6 @@ if (-not $isAdmin) {
 
 # Define the path to the Sunshine configuration file
 $confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
-$scriptRoot = Split-Path $scriptPath -Parent
 
 
 
@@ -100,7 +65,6 @@ function Remove-MonitorSwapperCommand {
         }
     }
 
-
     # Return the modified array of objects
     return [object[]]$filteredCommands
 }
@@ -113,7 +77,6 @@ function Set-GlobalPrepCommand {
         [string]$ConfigPath,
 
         # The new value for global_prep_cmd as an array of objects
-        [Parameter(Mandatory)]
         [object[]]$Value
     )
 
@@ -141,39 +104,11 @@ function Set-GlobalPrepCommand {
     $config | Set-Content -Path $ConfigPath -Force
 }
 
-# Add a new command to run MonitorSwapper.ps1 to the global_prep_cmd value
-function Add-MonitorSwapperCommand {
-    param (
-        # The path to the configuration file
-        [Parameter(Mandatory)]
-        [string]$ConfigPath,
-
-        # The path to the MonitorSwapper script
-        [Parameter(Mandatory)]
-        [string]$ScriptPath
-    )
-
-    # Remove any existing commands that contain MonitorSwapper from the global_prep_cmd value
-    $globalPrepCmdArray = Remove-MonitorSwapperCommand -ConfigPath $ConfigPath
-
-    # Create a new object with the command to run MonitorSwapper.ps1
-    $MonitorSwapperCommand = [PSCustomObject]@{
-        do       = "powershell.exe -executionpolicy bypass -file `"$($ScriptPath)`""
-        elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\MonitorSwapper-Functions.ps1`" $true"
-    }
-
-    # Add the new object to the global_prep_cmd array
-    [object[]]$globalPrepCmdArray += $MonitorSwapperCommand
-
-
-
-    # Set the new value for global_prep_cmd in the configuration file
-    Set-GlobalPrepCommand -ConfigPath $ConfigPath -Value $globalPrepCmdArray
-}
 
 # Invoke the function to add the MonitorSwapper command
-Add-MonitorSwapperCommand -ConfigPath $confPath -ScriptPath $scriptPath
+$commands = Remove-MonitorSwapperCommand -ConfigPath $confPath
+if ($null -eq $commands) { $commands = [object[]]@() }
+Set-GlobalPrepCommand -ConfigPath $confPath -Value $commands
 
 # In order for the commands to apply we have to restart the service
 Restart-Service sunshinesvc -WarningAction SilentlyContinue

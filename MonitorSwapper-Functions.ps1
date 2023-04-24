@@ -1,5 +1,5 @@
 param($terminate)
-$path = "Please run the Install_as_Precommand.ps1 script to finish the setup of this script."
+$path = "F:\sources\MonitorSwapAutomation"
 
 Set-Location $path
 
