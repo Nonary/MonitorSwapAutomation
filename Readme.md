@@ -66,12 +66,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 
     Please make sure to escape the back slashes, as single slashes will not work in JSON.
 
-7. Install the script by right-clicking the `Install_as_Precommand.ps1` and selecting "Run with PowerShell".
-8. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
-9. Verify that the sunshine.conf file is configured properly, if successful the global_prep_cmd should look like this
-    global_prep_cmd = [{"do":"powershell.exe -executionpolicy bypass -file \"{PATH_TO_FOLDER}\\MonitorSwap-Dummy.ps1\"","elevated":"false","undo":"powershell.exe -executionpolicy bypass -command \"New-Item $env:TEMP/stream_ended.txt\""}]
-
-7. Install the script by right-clicking the `Install_as_Precommand.ps1` and selecting "Run with PowerShell".
+7. Install the script by double clicking the Install.bat file, you may get a smart-screen warning... this is normal.
 8. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
 9. Verify that the sunshine.conf file is configured properly, if successful the global_prep_cmd should look like this
     global_prep_cmd = [{"do":"powershell.exe -executionpolicy bypass -file \"F:\\sources\\MonitorSwapAutomation\\MonitorSwap-Dummy.ps1\"","elevated":"false","undo":"powershell.exe -executionpolicy bypass -file \"F:\\sources\\MonitorSwapAutomation\\MonitorSwap-Functions.ps1\" True"}]
@@ -91,4 +86,4 @@ If you encounter issues with the script, you can try the following:
 - Check that you have set every parameter related to the dummy monitor's resolution in the `primary.cfg` file to `0`.
 - Check that you have at least one monitor not "zeroed out" in both the primary.cfg and dummy.cfg files.
 - Ensure that you have followed the requirements for Sunshine users as listed above.
-- If you are still experiencing issues, try Install_as_Precommand.ps1 again.
+- If you are still experiencing issues, try uninstalling and installing it again.
