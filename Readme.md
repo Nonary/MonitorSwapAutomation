@@ -12,7 +12,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 
 ### For GFE users
 
-- This script no longer supports GFE, but you can retrieve a legacy version of this script by downloading this release: <url_pending>
+- This script no longer supports GFE, but you are able to retrieve a legacy version of this script that does support it: https://github.com/Nonary/MonitorSwapAutomation/releases/tag/legacy
 
 ### For Sunshine users
 - Version 0.19.1 or higher
