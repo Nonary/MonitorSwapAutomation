@@ -14,17 +14,17 @@ Start-Transcript -Path .\log.txt
 
 
 $mutexName = "MonitorSwapper"
-$resolutionMutex = New-Object System.Threading.Mutex($false, $mutexName, [ref]$lock)
+$mutex = New-Object System.Threading.Mutex($false, $mutexName, [ref]$lock)
 
 # There is no need to have more than one of these scripts running.
-if (-not $resolutionMutex.WaitOne(0)) {
+if (-not $mutex.WaitOne(0)) {
     Write-Host "Another instance of the script is already running. Exiting..."
     exit
 }
 
 try {
     
-    # Asynchronously start the Resolution Matcher, so we can use a named pipe to terminate it.
+    # Asynchronously start the MonitorSwapper, so we can use a named pipe to terminate it.
     Start-Job -Name MonitorSwapperJob -ScriptBlock {
         . .\MonitorSwap-Functions.ps1
         $lastStreamed = Get-Date
@@ -90,7 +90,7 @@ try {
             Remove-Event -SourceIdentifier MonitorSwapper
         }
         elseif ($pipeJob.State -eq "Completed") {
-            Write-Host "Request to terminate has been processed, script will now revert resolution."
+            Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
             OnStreamEnd
             Remove-Job $pipeJob
             break;
@@ -105,7 +105,7 @@ try {
 }
 finally {
     Remove-Item "\\.\pipe\MonitorSwapper" -ErrorAction Ignore
-    $resolutionMutex.ReleaseMutex()
+    $mutex.ReleaseMutex()
     Remove-Event -SourceIdentifier MonitorSwapper -ErrorAction Ignore
     Stop-Transcript
 }

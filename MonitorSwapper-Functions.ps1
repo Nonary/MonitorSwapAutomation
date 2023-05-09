@@ -1,12 +1,9 @@
 param($terminate)
-$path = "F:\sources\MonitorSwapAutomation"
 
-Set-Location $path
-
-$settings = Get-Content -Path $path/settings.json | ConvertFrom-Json
+$settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
 $primaryMonitorId = $settings.primaryMonitorId
-$gracePeroid = $settings.gracePeriod
+
 
 function OnStreamStart() {
     Write-Output "Dummy plug activated"
