@@ -86,4 +86,5 @@ If you encounter issues with the script, you can try the following:
 - Check that you have set every parameter related to the dummy monitor's resolution in the `primary.cfg` file to `0`.
 - Check that you have at least one monitor not "zeroed out" in both the primary.cfg and dummy.cfg files.
 - Ensure that you have followed the requirements for Sunshine users as listed above.
+- Increase the startDelay in the settings file if you're experiencing the script only works intermitently.
 - If you are still experiencing issues, try uninstalling and installing it again.

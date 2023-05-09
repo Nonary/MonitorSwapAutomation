@@ -1,16 +1,18 @@
 ﻿param($async)
-
+Start-Transcript -Path .\log.txt
+$settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
     Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
-    Start-Sleep -Seconds 1
+    Start-Sleep -Seconds $settings.startDelay
+    exit
 }
 
 Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
 . .\MonitorSwapper-Functions.ps1
 $lock = $false
-Start-Transcript -Path .\log.txt
+
 
 
 $mutexName = "MonitorSwapper"
