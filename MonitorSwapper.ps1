@@ -1,5 +1,5 @@
 ﻿param($async)
-Start-Transcript -Path .\log.txt
+Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
@@ -9,7 +9,7 @@ if ($null -eq $async) {
     exit
 }
 
-Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
+Start-Transcript -Path .\log.txt
 . .\MonitorSwapper-Functions.ps1
 $lock = $false
 
