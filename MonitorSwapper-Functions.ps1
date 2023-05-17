@@ -1,5 +1,6 @@
 param($terminate)
 
+Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
 $primaryMonitorId = $settings.primaryMonitorId
@@ -14,7 +15,7 @@ function OnStreamStart() {
 function PrimaryScreenIsActive() {
     # For some displays, the primary screen can't be set until it wakes up from sleep.
     # This will continually poll the configuration to make sure the display has been set.
-
+    Remove-Item -Path "$configSaveLocation\current_monitor_config.cfg" -ErrorAction SilentlyContinue
     & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\current_monitor_config.cfg"
     Start-Sleep -Seconds 1
     $monitorConfigLines = (Get-Content -Path "$configSaveLocation\current_monitor_config.cfg" | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
