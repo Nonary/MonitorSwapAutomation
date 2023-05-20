@@ -4,25 +4,54 @@ Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
 $primaryMonitorId = $settings.primaryMonitorId
+$dummyMonitorId = $settings.dummyMonitorId
 
 
 function OnStreamStart() {
-    Write-Output "Dummy plug activated"
+
     & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
+    Start-Sleep -Seconds 1
+
+    # Attempt to load the dummy profile for up to 5 times in total.
+    for ($i = 0; $i -lt 4; $i++) {
+        if (-not (IsMonitorActive -monitorId $dummyMonitorId)) {
+            & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
+        }
+        if ($i -eq 4) {
+            Write-Host "Failed to verify dummy plug was activated, did you make sure dummyMonitorId was included and was properly escaped with double backslashes?"
+        }
+        Start-Sleep -Milliseconds 500
+    }
+
+    Write-Output "Dummy plug activated"
 }
 
 
-function PrimaryScreenIsActive() {
+function IsMonitorActive($monitorId) {
     # For some displays, the primary screen can't be set until it wakes up from sleep.
     # This will continually poll the configuration to make sure the display has been set.
-    Remove-Item -Path "$configSaveLocation\current_monitor_config.cfg" -ErrorAction SilentlyContinue
-    & .\MultiMonitorTool.exe /SaveConfig "$configSaveLocation\current_monitor_config.cfg"
+    $filePath = "$configSaveLocation\current_monitor_config.cfg"
+    & .\MultiMonitorTool.exe /SaveConfig $filePath
     Start-Sleep -Seconds 1
-    $monitorConfigLines = (Get-Content -Path "$configSaveLocation\current_monitor_config.cfg" | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
-    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
-        $monitorId = ($monitorConfigLines[$i] -split "=") | Select-Object -Last 1
 
-        if ($monitorId -eq $primaryMonitorId) {
+    $currentTime = Get-Date
+
+    # Get the file's last write time
+    $fileLastWriteTime = (Get-Item $filePath).LastWriteTime
+
+    # Calculate the time difference in minutes
+    $timeDifference = ($currentTime - $fileLastWriteTime).TotalMinutes
+
+    # Check if the file was saved in the last minute, if it has not been saved recently, then we could have a potential false positive.
+    if ($timeDifference -gt 1) {
+        return $false        
+    }
+
+    $monitorConfigLines = (Get-Content -Path $filePath | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
+    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
+        $configMonitorId = ($monitorConfigLines[$i] -split "=") | Select-Object -Last 1
+
+        if ($configMonitorId -eq $monitorId) {
             $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
             $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
             $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
@@ -41,12 +70,13 @@ function PrimaryScreenIsActive() {
 
 function SetPrimaryScreen() {
     Write-Host "Attempting to set primary screen"
+    
     if (IsCurrentlyStreaming) {
-        return "No Operating Necessary Because already streaming"
+        Write-Host "Screen will not be reverted because we are already streaming"
+        return
     }
 
     & .\MultiMonitorTool.exe /LoadConfig "primary.cfg"
-
 
     Start-Sleep -Milliseconds 750
 }
@@ -64,8 +94,8 @@ function OnStreamEnd() {
             SetPrimaryScreen
 
             # Some displays will not activate until the user returns back to their PC and wakes up the display.
-            # So start an infinite loop to check and set that.
-            if (!(PrimaryScreenIsActive)) {
+            # So start a near infinite loop to check and set that.
+            if (!(IsMonitorActive -monitorId $primaryMonitorId)) {
                 SetPrimaryScreen
             }
             else {
@@ -79,8 +109,7 @@ function OnStreamEnd() {
         Start-Sleep -Seconds 5
     }
 
-    Write-Host "Dummy Plug Deactivated, Restoring original monitor configuration!"
-
+    Write-Host "Dummy Plug has been successfully deactivated!"
 
 }
 
