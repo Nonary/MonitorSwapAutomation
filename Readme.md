@@ -60,6 +60,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 8. Validate you have escaped the backslashes, below is an example of a valid settings.json file.
     ```
     {
+    "startDelay": 2,
     "gracePeriod": 60,
     "configSaveLocation": "%TEMP%",
     "primaryMonitorId": "MONITOR\\GSMC0C8\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\0009",
