@@ -3,10 +3,16 @@
 This script automates the process of switching your primary monitor with a dummy monitor using MultiMonitorTool. 
 This is useful for users of Sunshine (a screen sharing software) who experience issues with sharing their primary monitor.
 
-## CAVEATS
+## Caveats:
+ - If using Windows 11, you'll need to set the default terminal to Windows Console Host as there is currently a bug in Windows Terminal that prevents hidden consoles from working properly.
+    * That can be changed at Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
+ - Prepcommands do not work from cold reboots, and will prevent Sunshine from working until you logon locally.
+   * You should add a new application (with any name you'd like) in the WebUI and leave **both** the command and detached command empty.
+   * When adding this new application, make sure global prep command option is disabled.
+   * That will serve as a fallback option when you have to remote into your computer from a cold start.
+   * Normal reboots issued from start menu, will still work without the workaround above as long as Settings > Accounts > Sign-in options and "Use my sign-in info to automatically finish setting up after an update" is enabled which is default in Windows 10 & 11.
+ - The script will stop working if you move the folder, simply reinstall it to resolve that issue.
 
-- If you are using Windows 11, you need to set your default terminal to "Windows Console Host". Windows Terminal is currently bugged and does not respect hiding PowerShell scripts.
-- Once installing this script, you cannot move this folder as it will break the automation. If you need to move the folder, simply uninstall and install the script again.
 
 ## REQUIREMENTS
 
