@@ -12,6 +12,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
    * That will serve as a fallback option when you have to remote into your computer from a cold start.
    * Normal reboots issued from start menu, will still work without the workaround above as long as Settings > Accounts > Sign-in options and "Use my sign-in info to automatically finish setting up after an update" is enabled which is default in Windows 10 & 11.
  - The script will stop working if you move the folder, simply reinstall it to resolve that issue.
+ - In the Sunshine WEB UI, make sure you leave the Output Name blank under the Audio/Video tab, otherwise it could cause breaking behavior with this script.
 
 
 ## REQUIREMENTS
