@@ -1,5 +1,6 @@
 ﻿param($async)
-Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
+$path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
+Set-Location $path
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
@@ -28,28 +29,32 @@ try {
     
     # Asynchronously start the MonitorSwapper, so we can use a named pipe to terminate it.
     Start-Job -Name MonitorSwapperJob -ScriptBlock {
-        . .\MonitorSwap-Functions.ps1
+        param($path, $gracePeriod)
+        . $path\MonitorSwapper-Functions.ps1
         $lastStreamed = Get-Date
 
 
         Register-EngineEvent -SourceIdentifier MonitorSwapper -Forward
         New-Event -SourceIdentifier MonitorSwapper -MessageData "Start"
         while ($true) {
-            if ((IsCurrentlyStreaming)) {
-                $lastStreamed = Get-Date
-            }
-            else {
-                if (((Get-Date) - $lastStreamed).TotalSeconds -gt 120) {
-                    Write-Output "Ending the stream script"
-                    New-Event -SourceIdentifier MonitorSwapper -MessageData "End"
-                    break;
+            try {
+                if ((IsCurrentlyStreaming)) {
+                    $lastStreamed = Get-Date
                 }
-    
+                else {
+                    if (((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeriod) {
+                        New-Event -SourceIdentifier MonitorSwapper -MessageData "End"
+                        break;
+                    }
+        
+                }
             }
-            Start-Sleep -Seconds 1
+            finally {
+                Start-Sleep -Seconds 1
+            }
         }
     
-    }
+    } -ArgumentList $path, $settings.gracePeriod
 
 
     # To allow other powershell scripts to communicate to this one.
@@ -85,16 +90,15 @@ try {
             if($eventName -eq "Start"){
                 OnStreamStart
             }
-            elseif ($eventName -eq "End") {
+            else{
                 OnStreamEnd
                 break;
             }
-            Remove-Event -SourceIdentifier MonitorSwapper
+            Remove-Event -EventIdentifier $eventFired.EventIdentifier
         }
         elseif ($pipeJob.State -eq "Completed") {
             Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
             OnStreamEnd
-            Remove-Job $pipeJob
             break;
         }
         elseif($eventMessageCount -gt 59) {
