@@ -3,7 +3,6 @@ param($terminate)
 Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
-$primaryMonitorId = $settings.primaryMonitorId
 $dummyMonitorId = $settings.dummyMonitorId
 
 
@@ -69,7 +68,7 @@ function IsMonitorActive($monitorId) {
 }
 
 function SetPrimaryScreen() {
-    Write-Host "Attempting to set primary screen"
+
     
     if (IsCurrentlyStreaming) {
         Write-Host "Screen will not be reverted because we are already streaming"
@@ -82,7 +81,7 @@ function SetPrimaryScreen() {
 }
 
 function OnStreamEnd() {
-
+    Write-Host "Attempting to set primary screen, some displays may not activate until you return to the computer"
     for ($i = 0; $i -lt 100000000; $i++) {
         try {
 
@@ -92,10 +91,26 @@ function OnStreamEnd() {
             }
         
             SetPrimaryScreen
+            $checks = @()
 
             # Some displays will not activate until the user returns back to their PC and wakes up the display.
             # So start a near infinite loop to check and set that.
-            if (!(IsMonitorActive -monitorId $primaryMonitorId)) {
+            $pattern = '(?s)\[Monitor\d+\]\r?\nName=.*\r?\nMonitorID=(.*?)\r?\nSerialNumber=.*\r?\nBitsPerPixel=\d+\r?\nWidth=\d+\r?\nHeight=\d+\r?\nDisplayFlags=\d+\r?\nDisplayFrequency=(\d+)\r?'
+
+            [string[]]$primaryMonitorIds = [regex]::Matches((Get-Content -Raw -Path "primary.cfg"), $pattern) | ForEach-Object {
+                $monitorId = $_.Groups[1].Value
+                $displayFrequency = $_.Groups[2].Value
+                if ([int]$displayFrequency -gt 0) {
+                    $monitorId
+                }
+            }
+            foreach ($monitor in $primaryMonitorIds) {
+                $active = IsMonitorActive -monitorId $monitor
+                Write-Host "$monitor Active: $active"
+                $checks += $active
+            }
+            if (($checks | Where-Object { $_ -eq $true }).Count -lt $primaryMonitors.Count) {
+                Write-Host "Failed to restore display, trying again. This is expected as many displays do not activate until woken up from sleep mode."
                 SetPrimaryScreen
             }
             else {
