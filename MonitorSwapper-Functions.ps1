@@ -80,6 +80,23 @@ function SetPrimaryScreen() {
     Start-Sleep -Milliseconds 750
 }
 
+function Get-PrimaryMonitorIds {
+    $pattern = '(?<=MonitorID=)(?<id>.*)|(?<=DisplayFrequency=)(?<freq>\d+)'
+    $primaryMonitorIds = @()
+    $foundMonitors = [regex]::Matches((Get-Content -Raw -Path "primary.cfg"), $pattern)
+    for ($i = 0; $i -lt $foundMonitors.Count; $i += 2) {
+        $match = $foundMonitors[$i]
+        $monitorId = $match.Groups[0].Value
+        $refresh = $foundMonitors[$i + 1].Groups[0].Value
+
+        if ($refresh -ne 0) {
+            $primaryMonitorIds += $monitorId.Trim()
+        }
+    }
+
+    return $primaryMonitorIds
+}
+
 function OnStreamEnd() {
     Write-Host "Attempting to set primary screen, some displays may not activate until you return to the computer"
     for ($i = 0; $i -lt 100000000; $i++) {
@@ -95,15 +112,8 @@ function OnStreamEnd() {
 
             # Some displays will not activate until the user returns back to their PC and wakes up the display.
             # So start a near infinite loop to check and set that.
-            $pattern = '(?s)\[Monitor\d+\]\r?\nName=.*\r?\nMonitorID=(.*?)\r?\nSerialNumber=.*\r?\nBitsPerPixel=\d+\r?\nWidth=\d+\r?\nHeight=\d+\r?\nDisplayFlags=\d+\r?\nDisplayFrequency=(\d+)\r?'
 
-            [string[]]$primaryMonitorIds = [regex]::Matches((Get-Content -Raw -Path "primary.cfg"), $pattern) | ForEach-Object {
-                $monitorId = $_.Groups[1].Value
-                $displayFrequency = $_.Groups[2].Value
-                if ([int]$displayFrequency -gt 0) {
-                    $monitorId
-                }
-            }
+            [string[]]$primaryMonitorIds = Get-PrimaryMonitorIds
             foreach ($monitor in $primaryMonitorIds) {
                 $active = IsMonitorActive -monitorId $monitor
                 Write-Host "$monitor Active: $active"
