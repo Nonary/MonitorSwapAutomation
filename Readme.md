@@ -62,22 +62,20 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 4. Verify that the `dummy.cfg` file has only **one** display that contains values for the `BitsPerPixel`, `Width`, `Height`, and so on. 
 4a. For the `primary.cfg file`, it does not matter if there are other displays enabled, but you would want to make sure your dummy is "zeroed out" so you don't end up with an invisible monitor.
 5. Basically, primary will "zero out" the dummy plug, and dummy will "zero out" the main display. This will automatically transfer games and windows back to the primary monitor if setup this way.
-6. In the `primary.cfg` file, locate your primary `MonitorId` and copy and paste it to the `primaryMonitorId` key in the settings.json file. Make sure to escape the backslashes.
-7. In the `dummy.cfg` file, locate your dummy `MonitorId` and copy and paste it to the `dummyMonitorId` key in the settings.json file. Make sure to escape the backslashes.
-8. Validate you have escaped the backslashes, below is an example of a valid settings.json file.
+6. In the `dummy.cfg` file, locate your dummy `MonitorId` and copy and paste it to the `dummyMonitorId` key in the settings.json file. Make sure to escape the backslashes.
+7. Validate you have escaped the backslashes, below is an example of a valid settings.json file.
     ```
     {
     "startDelay": 2,
     "gracePeriod": 60,
     "configSaveLocation": "%TEMP%",
-    "primaryMonitorId": "MONITOR\\GSMC0C8\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\0009",
     "dummyMonitorId": "MONITOR\\XMD009A\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\0010"
     }
     ```
 
-9. Install the script by double clicking the Install.bat file, you may get a smart-screen warning... this is normal.
-10. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
-11. Verify that the sunshine.conf file is configured properly, if successful the global_prep_cmd should look like this
+8. Install the script by double clicking the Install.bat file, you may get a smart-screen warning... this is normal.
+9. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
+10. Verify that the sunshine.conf file is configured properly, if successful the global_prep_cmd should look like this
     global_prep_cmd = [{"do":"powershell.exe -executionpolicy bypass -file \"F:\\sources\\MonitorSwapAutomation\\MonitorSwap-Dummy.ps1\"","elevated":"false","undo":"powershell.exe -executionpolicy bypass -file \"F:\\sources\\MonitorSwapAutomation\\MonitorSwap-Functions.ps1\" True"}]
 
 The paths referenced above will vary on your machine.
@@ -85,9 +83,8 @@ The paths referenced above will vary on your machine.
 
 If you encounter issues with the script, you can try the following:
 
-- Check that your primary monitor `MonitorId` matches the value in the `primaryMonitorId` variable in the `settings.json` file.
 - Check that your dummy monitor `MonitorId` matches the value in the `dummyMonitorId` variable in the `settings.json` file.
-- Check that you have escaped the backslashes in both the primaryMonitorId and dummyMonitorId in the `settings.json` file.
+- Check that you have escaped the backslashes for dummyMonitorId in the `settings.json` file.
   Valid: MONITOR\\\\GSMC0C8\\\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\\\0009
 
   Invalid: MONITOR\GSMC0C8\{4d36e96e-e325-11ce-bfc1-08002be10318}\0009
