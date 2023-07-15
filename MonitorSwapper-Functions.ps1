@@ -99,44 +99,36 @@ function Get-PrimaryMonitorIds {
 
 function OnStreamEnd() {
     Write-Host "Attempting to set primary screen, some displays may not activate until you return to the computer"
-    for ($i = 0; $i -lt 100000000; $i++) {
+
+    $maxAttempts = 100000000
+    $attemptDelay = 5
+
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
         try {
-
-            # To prevent massive performance hitches to users when streaming, we're breaking here in the event they started streaming again.
-            if (IsCurrentlyStreaming) {
-                break;
-            }
-        
             SetPrimaryScreen
-            $checks = @()
-
-            # Some displays will not activate until the user returns back to their PC and wakes up the display.
-            # So start a near infinite loop to check and set that.
-
-            [string[]]$primaryMonitorIds = Get-PrimaryMonitorIds
-            foreach ($monitor in $primaryMonitorIds) {
-                $active = IsMonitorActive -monitorId $monitor
-                Write-Host "$monitor Active: $active"
-                $checks += $active
+            $primaryMonitorIds = Get-PrimaryMonitorIds
+            $checks = foreach ($monitor in $primaryMonitorIds) {
+                IsMonitorActive -monitorId $monitor
             }
-            if (($checks | Where-Object { $_ -eq $true }).Count -lt $primaryMonitors.Count) {
-                Write-Host "Failed to restore display, trying again. This is expected as many displays do not activate until woken up from sleep mode."
-                SetPrimaryScreen
-            }
-            else {
+
+            $successCount = ($checks | Where-Object { $_ -eq $true }).Count
+            if ($successCount -ge $primaryMonitorIds.Count) {
+                Write-Host "Monitor(s) have been successfully restored."
                 break
+            } else {
+                Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after $attemptDelay seconds..."
             }
-        
         }
         catch {
-            ## Do Nothing, because we're expecting it to fail in cases like when user has a TV as a primary display.
+            ## Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
         }
-        Start-Sleep -Seconds 5
+
+        Start-Sleep -Seconds $attemptDelay
     }
 
     Write-Host "Dummy Plug has been successfully deactivated!"
-
 }
+
 
 function IsSunshineUser() {
     return $null -ne (Get-Process sunshine -ErrorAction SilentlyContinue)
