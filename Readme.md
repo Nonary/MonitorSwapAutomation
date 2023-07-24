@@ -83,6 +83,7 @@ The paths referenced above will vary on your machine.
 
 If you encounter issues with the script, you can try the following:
 
+#### Monitor is not swapping before stream or afterwards
 - Check that your dummy monitor `MonitorId` matches the value in the `dummyMonitorId` variable in the `settings.json` file.
 - Check that you have escaped the backslashes for dummyMonitorId in the `settings.json` file.
   Valid: MONITOR\\\\GSMC0C8\\\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\\\0009
@@ -95,3 +96,13 @@ If you encounter issues with the script, you can try the following:
 - Ensure that you have followed the requirements for Sunshine users as listed above.
 - Increase the startDelay in the settings file if you're experiencing the script only works intermitently.
 - If you are still experiencing issues, try uninstalling and installing it again.
+
+#### Only one screen is being restored, everything else works
+- You will have to do this workaround mentioned here: https://github.com/Nonary/MonitorSwapAutomation/issues/9 
+  - There is currently a bug in the MultiMonitor tool in some scenarios with people who have dual screens. I do not have the source code for that tool, so it is impossible for me to fix directly, a workaround has to be done until resolved by Nirsoft. Please report your issue to [nirsofer@yahoo.com](mailto:nirsofer@yahoo.com) so he can gather more users and data to ultimately resolve this issue.
+
+### Recent Changes
+- Fixes a bug that prevented the script from restoring the display in some scenarios, if user left their Moonlight client at the host screen.
+- Fixed a bug that prevented the script from self-terminating itself after the user suspended the session longer than their defined grace period in the settings file.
+-  Better multi-monitor support by validating that all screens have been restored instead of just the main primary one.
+-  Primary monitor id is no longer required in settings and has been removed, script will now automatically figure out the primary monitors identity.
