@@ -6,12 +6,9 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 ## Caveats:
  - If using Windows 11, you'll need to set the default terminal to Windows Console Host as there is currently a bug in Windows Terminal that prevents hidden consoles from working properly.
     * That can be changed at Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
- - Prepcommands do not work from cold reboots, and will prevent Sunshine from working until you logon locally.
-   * You should add a new application (with any name you'd like) in the WebUI and leave **both** the command and detached command empty.
-   * When adding this new application, make sure global prep command option is disabled.
-   * That will serve as a fallback option when you have to remote into your computer from a cold start.
-   * Normal reboots issued from start menu, will still work without the workaround above as long as Settings > Accounts > Sign-in options and "Use my sign-in info to automatically finish setting up after an update" is enabled which is default in Windows 10 & 11.
  - The script will stop working if you move the folder, simply reinstall it to resolve that issue.
+ - Due to Windows API restrictions, this script does not work on cold reboots (hard crashes or shutdowns of your computer).
+    * If you're cold booting, simply sign into the computer using the "Desktop" app on Moonlight, then end the stream, then start it again. 
  - In the Sunshine WEB UI, make sure you leave the Output Name blank under the Audio/Video tab, otherwise it could cause breaking behavior with this script.
 
 
@@ -24,9 +21,6 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 ### For Sunshine users
 - Version 0.19.1 or higher
 - Host must be Windows
-- Sunshine must be installed as a service (it does not work with the zip version of Sunshine)
-- Sunshine logging level must be set to Debug
-- Users must have read permissions to `%WINDIR%/Temp/Sunshine.log` (do not change other permissions, just make sure Users have at least read permissions)
 
 ## INSTRUCTIONS
 
