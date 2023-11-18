@@ -92,6 +92,13 @@ If you encounter issues with the script, you can try the following:
 - Increase the startDelay in the settings file if you're experiencing the script only works intermitently.
 - If you are still experiencing issues, try uninstalling and installing it again.
 
+#### ResolutionAutomation script isn't changing my resolution after connecting and or is intermittently working
+  - First, ensure that MonitorSwapper is installed *first*, then install the [ResolutionAutomation](https://github.com/Nonary/ResolutionAutomation) script.
+    - If you installed them out of order, uninstall both, then install MonitorSwapper, then ResolutionAutomation.
+  - Adjust the start delay in the settings.json file to 3 or 4 seconds and that should resolve that issue.
+    - Sometimes the swap can take longer to do and the resolution swap is happening on your primary screen
+    - Adjusting the start delay will give the swap more time to complete, thus making sure resolution is changed on the correct monitor.
+
 #### Only one screen is being restored, everything else works
 - You will have to do this workaround mentioned here: https://github.com/Nonary/MonitorSwapAutomation/issues/9 
   - There is currently a bug in the MultiMonitor tool in some scenarios with people who have dual screens. I do not have the source code for that tool, so it is impossible for me to fix directly, a workaround has to be done until resolved by Nirsoft. Please report your issue to [nirsofer@yahoo.com](mailto:nirsofer@yahoo.com) so he can gather more users and data to ultimately resolve this issue.
