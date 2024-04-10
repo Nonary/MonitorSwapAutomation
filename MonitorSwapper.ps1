@@ -12,18 +12,13 @@ if ($null -eq $async) {
 
 Start-Transcript -Path .\log.txt
 . .\MonitorSwapper-Functions.ps1
-$lock = $false
+
+Send-PipeMessage -pipeName "OnStreamEnd" -Message "Terminate"
 
 
+# There is no need to have more than one of these scripts running, so lets close out the previous one gracefully.
 
-$mutexName = "MonitorSwapper"
-$mutex = New-Object System.Threading.Mutex($false, $mutexName, [ref]$lock)
 
-# There is no need to have more than one of these scripts running.
-if (-not $mutex.WaitOne(0)) {
-    Write-Host "Another instance of the script is already running. Exiting..."
-    exit
-}
 
 try {
     
@@ -91,14 +86,20 @@ try {
                 OnStreamStart
             }
             else{
-                OnStreamEnd
+                OnStreamEndAsJob | Wait-Job
                 break;
             }
             Remove-Event -EventIdentifier $eventFired.EventIdentifier
         }
         elseif ($pipeJob.State -eq "Completed") {
             Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
-            OnStreamEnd
+            $endJob = OnStreamEndAsJob
+
+            # Continually poll the job to write to log file once every 3 seconds
+            while($endJob.State -ne "Completed"){
+                $endJob | Receive-Job
+                Start-Sleep -Milliseconds 10
+            }
             break;
         }
         elseif($eventMessageCount -gt 59) {
@@ -111,7 +112,6 @@ try {
 }
 finally {
     Remove-Item "\\.\pipe\MonitorSwapper" -ErrorAction Ignore
-    $mutex.ReleaseMutex()
     Remove-Event -SourceIdentifier MonitorSwapper -ErrorAction Ignore
     Stop-Transcript
 }

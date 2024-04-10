@@ -1,9 +1,10 @@
 param($terminate)
-
-Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
+$path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
+Set-Location $path
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
 $dummyMonitorId = $settings.dummyMonitorId
+$script:attempt = 0
 
 
 function OnStreamStart() {
@@ -71,7 +72,6 @@ function SetPrimaryScreen() {
 
     
     if (IsCurrentlyStreaming) {
-        Write-Host "Screen will not be reverted because we are already streaming"
         return
     }
 
@@ -98,35 +98,64 @@ function Get-PrimaryMonitorIds {
 }
 
 function OnStreamEnd() {
-    Write-Host "Attempting to set primary screen, some displays may not activate until you return to the computer"
 
-    $maxAttempts = 100000000
-    $attemptDelay = 5
 
-    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
-        try {
-            SetPrimaryScreen
-            $primaryMonitorIds = Get-PrimaryMonitorIds
-            $checks = foreach ($monitor in $primaryMonitorIds) {
-                IsMonitorActive -monitorId $monitor
-            }
-
-            $successCount = ($checks | Where-Object { $_ -eq $true }).Count
-            if ($successCount -ge $primaryMonitorIds.Count) {
-                Write-Host "Monitor(s) have been successfully restored."
-                break
-            } else {
-                Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after $attemptDelay seconds..."
-            }
-        }
-        catch {
-            ## Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
+    try {
+        SetPrimaryScreen
+        $primaryMonitorIds = Get-PrimaryMonitorIds
+        $checks = foreach ($monitor in $primaryMonitorIds) {
+            IsMonitorActive -monitorId $monitor
         }
 
-        Start-Sleep -Seconds $attemptDelay
+        $successCount = ($checks | Where-Object { $_ -eq $true }).Count
+        if ($successCount -ge $primaryMonitorIds.Count) {
+            Write-Host "Monitor(s) have been successfully restored."
+        }
+        elseif (($script:attempt++ -eq 1) -or ($script:attempt % 120 -eq 0)) {
+            Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be supressed to only show up once every 10 minutes)"
+            return $false
+        }
+    }
+    catch {
+        ## Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
     }
 
+
     Write-Host "Dummy Plug has been successfully deactivated!"
+    return $true
+}
+
+function OnStreamEndAsJob() {
+
+    return Start-Job -Name "OnStreamEnd" -ScriptBlock {
+        param($path)
+        Set-Location $path
+        . .\MonitorSwapper-Functions.ps1
+    
+        Write-Host "Attempting to set primary screen, some displays may not activate until you return to the computer"
+        $job = Create-Pipe -pipeName "OnStreamEnd" 
+
+        while ($true) {
+            $maxTries = 250
+            $tries = 0
+    
+            while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
+                Start-Sleep -Milliseconds 25
+                $tries++
+            }
+    
+            if ($job.State -ne "Completed") {
+                $success = OnStreamEnd
+                if ($success) {
+                    break;
+                } 
+            }
+        }
+
+        # We no longer need to listen for the end command since we've already restored at this point.
+        Send-PipeMessage OnStreamEnd Terminate
+    } -ArgumentList $path
+    
 }
 
 
@@ -143,14 +172,17 @@ function IsCurrentlyStreaming() {
 }
 
 function Stop-MonitorSwapperScript() {
+    Send-PipeMessage -pipeName MonitorSwapper Terminate
+}
 
-    $pipeExists = Get-ChildItem -Path "\\.\pipe\" | Where-Object { $_.Name -eq "MonitorSwapper" } 
+
+function Send-PipeMessage($pipeName, $message) {
+    $pipeExists = Get-ChildItem -Path "\\.\pipe\" | Where-Object { $_.Name -eq $pipeName } 
     if ($pipeExists.Length -gt 0) {
-        $pipeName = "MonitorSwapper"
         $pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", $pipeName, [System.IO.Pipes.PipeDirection]::Out)
         $pipe.Connect(3)
         $streamWriter = New-Object System.IO.StreamWriter($pipe)
-        $streamWriter.WriteLine("Terminate")
+        $streamWriter.WriteLine($message)
         try {
             $streamWriter.Flush()
             $streamWriter.Dispose()
@@ -162,7 +194,25 @@ function Stop-MonitorSwapperScript() {
         }
     }
 }
-    
+
+function Create-Pipe($pipeName) {
+    return Start-Job -Name "$pipeName-PipeJob" -ScriptBlock {
+        param($pipeName)        
+        Remove-Item "\\.\pipe\$pipeName" -ErrorAction Ignore
+        $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
+
+        $streamReader = New-Object System.IO.StreamReader($pipe)
+        Write-Output "Waiting for named pipe to recieve kill command"
+        $pipe.WaitForConnection()
+
+        $message = $streamReader.ReadLine()
+        if ($message -eq "Terminate") {
+            Write-Output "Terminating pipe..."
+            $pipe.Dispose()
+            $streamReader.Dispose()
+        }
+    } -ArgumentList $pipeName
+}
 
 if ($terminate) {
     Stop-MonitorSwapperScript | Out-Null
