@@ -10,10 +10,23 @@ if ($null -eq $async) {
     exit
 }
 
-Start-Transcript -Path .\log.txt
+
 . .\MonitorSwapper-Functions.ps1
 
-Send-PipeMessage -pipeName "OnStreamEnd" -Message "Terminate"
+if(Test-Path "\\.\pipe\MonitorSwapper"){
+    Write-Host "Existing session found"
+    # Script is already running, let's gracefully terminate it and launch it again.
+    Send-PipeMessage MonitorSwapper Terminate
+    Start-Sleep -Seconds 20
+}
+
+if(Test-Path "\\.\pipe\OnStreamEnd"){
+    Write-Host "Pending termination pipe found, closing it out"
+    Send-PipeMessage OnStreamEnd Terminate
+    Start-Sleep -Seconds 5
+}
+
+Start-Transcript -Path .\log.txt
 
 
 # There is no need to have more than one of these scripts running, so lets close out the previous one gracefully.

@@ -133,16 +133,20 @@ function OnStreamEndAsJob() {
         $job = Create-Pipe -pipeName "OnStreamEnd" 
 
         while ($true) {
-            $maxTries = 50
+            $maxTries = 100
             $tries = 0
 
-            if ($job.State -eq "Completed" -or (OnStreamEnd)) {
+            if ($job.State -eq "Completed") {
                 break;
             }
 
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
-                Start-Sleep -Milliseconds 100
+                Start-Sleep -Milliseconds 50
                 $tries++
+            }
+
+            if((OnStreamEnd)){
+                break;
             }
         } 
         # We no longer need to listen for the end command since we've already restored at this point.
