@@ -98,8 +98,6 @@ function Get-PrimaryMonitorIds {
 }
 
 function OnStreamEnd() {
-
-
     try {
         SetPrimaryScreen
         $primaryMonitorIds = Get-PrimaryMonitorIds
@@ -110,6 +108,7 @@ function OnStreamEnd() {
         $successCount = ($checks | Where-Object { $_ -eq $true }).Count
         if ($successCount -ge $primaryMonitorIds.Count) {
             Write-Host "Monitor(s) have been successfully restored."
+            return $true
         }
         elseif (($script:attempt++ -eq 1) -or ($script:attempt % 120 -eq 0)) {
             Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be supressed to only show up once every 10 minutes)"
@@ -120,9 +119,7 @@ function OnStreamEnd() {
         ## Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
     }
 
-
-    Write-Host "Dummy Plug has been successfully deactivated!"
-    return $true
+    return $false
 }
 
 function OnStreamEndAsJob() {
@@ -136,26 +133,21 @@ function OnStreamEndAsJob() {
         $job = Create-Pipe -pipeName "OnStreamEnd" 
 
         while ($true) {
-            $maxTries = 250
+            $maxTries = 50
             $tries = 0
-    
+
+            if ($job.State -eq "Completed" -or (OnStreamEnd)) {
+                break;
+            }
+
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
-                Start-Sleep -Milliseconds 25
+                Start-Sleep -Milliseconds 100
                 $tries++
             }
-    
-            if ($job.State -ne "Completed") {
-                $success = OnStreamEnd
-                if ($success) {
-                    break;
-                } 
-            }
-        }
-
+        } 
         # We no longer need to listen for the end command since we've already restored at this point.
         Send-PipeMessage OnStreamEnd Terminate
     } -ArgumentList $path
-    
 }
 
 

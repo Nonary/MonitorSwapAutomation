@@ -95,10 +95,10 @@ try {
             Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
             $endJob = OnStreamEndAsJob
 
-            # Continually poll the job to write to log file once every 3 seconds
+            # Continually poll the job to write to log file once every 1 seconds
             while($endJob.State -ne "Completed"){
                 $endJob | Receive-Job
-                Start-Sleep -Milliseconds 10
+                Start-Sleep -Seconds 1
             }
             break;
         }
