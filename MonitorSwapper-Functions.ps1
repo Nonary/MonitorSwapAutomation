@@ -8,19 +8,19 @@ $script:attempt = 0
 
 
 function OnStreamStart() {
-
-    & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
-    Start-Sleep -Seconds 1
-
     # Attempt to load the dummy profile for up to 5 times in total.
-    for ($i = 0; $i -lt 4; $i++) {
+    for ($i = 0; $i -lt 6; $i++) {
         if (-not (IsMonitorActive -monitorId $dummyMonitorId)) {
             & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
         }
-        if ($i -eq 4) {
-            Write-Host "Failed to verify dummy plug was activated, did you make sure dummyMonitorId was included and was properly escaped with double backslashes?"
+        else {
+            break;
         }
-        Start-Sleep -Milliseconds 500
+        if ($i -eq 5) {
+            Write-Host "Failed to verify dummy plug was activated, did you make sure dummyMonitorId was included and was properly escaped with double backslashes?"
+            return;
+        }
+        Start-Sleep -Seconds 1
     }
 
     Write-Output "Dummy plug activated"
@@ -77,7 +77,7 @@ function SetPrimaryScreen() {
 
     & .\MultiMonitorTool.exe /LoadConfig "primary.cfg"
 
-    Start-Sleep -Milliseconds 750
+    Start-Sleep -Seconds 3
 }
 
 function Get-PrimaryMonitorIds {
@@ -97,60 +97,85 @@ function Get-PrimaryMonitorIds {
     return $primaryMonitorIds
 }
 
-function OnStreamEnd() {
-    try {
-        SetPrimaryScreen
-        $primaryMonitorIds = Get-PrimaryMonitorIds
-        $checks = foreach ($monitor in $primaryMonitorIds) {
-            IsMonitorActive -monitorId $monitor
-        }
+function IsPrimaryMonitorActive() {
+    $primaryMonitorIds = Get-PrimaryMonitorIds
 
-        $successCount = ($checks | Where-Object { $_ -eq $true }).Count
-        if ($successCount -ge $primaryMonitorIds.Count) {
-            Write-Host "Monitor(s) have been successfully restored."
-            return $true
-        }
-        elseif (($script:attempt++ -eq 1) -or ($script:attempt % 120 -eq 0)) {
-            Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be supressed to only show up once every 10 minutes)"
-            return $false
-        }
+    $checks = foreach ($monitor in $primaryMonitorIds) {
+        IsMonitorActive -monitorId $monitor
     }
-    catch {
-        ## Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
+
+    $successCount = ($checks | Where-Object { $_ -eq $true }).Count
+    if ($successCount -ge $primaryMonitorIds.Count) {
+        return $true
     }
 
     return $false
 }
 
+function OnStreamEnd() {
+    try {
+        # Check if the primary monitor is not active
+        if (-not (IsPrimaryMonitorActive)) {
+            # Attempt to set the primary screen if it is not already set.
+            SetPrimaryScreen
+        }
+
+        # Check again if the primary monitor is not active after the first attempt to set it.
+        if (-not (IsPrimaryMonitorActive)) {
+            if (($script:attempt++ -eq 1) -or ($script:attempt % 120 -eq 0)) {
+                # Output a message to the host indicating difficulty in restoring the display.
+                # This message is shown once initially, and then once every 10 minutes.
+                Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be supressed to only show up once every 10 minutes)"
+            }
+            
+            # Return false indicating the primary monitor is still not active.
+            # If we reached here, that indicates the first two attempts had failed.
+            return $false
+        }
+
+        # Primary monitor is active, return true.
+        Write-Host "Primary monitor(s) have been successfully restored!"
+        return $true
+    }
+    catch {
+        ## Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
+    }
+
+    # Return false by default if an exception occurs.
+    return $false
+}
+
+
 function OnStreamEndAsJob() {
 
-    return Start-Job -Name "OnStreamEnd" -ScriptBlock {
+    return Start-Job -Name "MonitorSwapper-OnStreamEnd" -ScriptBlock {
         param($path)
         Set-Location $path
         . .\MonitorSwapper-Functions.ps1
     
         Write-Host "Attempting to set primary screen, some displays may not activate until you return to the computer"
-        $job = Create-Pipe -pipeName "OnStreamEnd" 
+        $job = Create-Pipe -pipeName "MonitorSwapper-OnStreamEnd" 
 
         while ($true) {
-            $maxTries = 100
+            $maxTries = 25
             $tries = 0
 
-            if ($job.State -eq "Completed") {
+            if ($job.State -eq "Completed" -or (IsCurrentlyStreaming)) {
                 break;
             }
 
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
-                Start-Sleep -Milliseconds 50
+                Start-Sleep -Milliseconds 200
                 $tries++
             }
 
-            if((OnStreamEnd)){
+
+            if ((OnStreamEnd)) {
                 break;
             }
         } 
         # We no longer need to listen for the end command since we've already restored at this point.
-        Send-PipeMessage OnStreamEnd Terminate
+        Send-PipeMessage MonitorSwapper-OnStreamEnd Terminate
     } -ArgumentList $path
 }
 
@@ -193,7 +218,16 @@ function Send-PipeMessage($pipeName, $message) {
 
 function Create-Pipe($pipeName) {
     return Start-Job -Name "$pipeName-PipeJob" -ScriptBlock {
-        param($pipeName)        
+        param($pipeName) 
+        
+        for ($i = 0; $i -lt 10; $i++) {
+            # We could be pending a previous termination, so lets wait up to 10 seconds.
+            if(-not (Test-Path "\\.\pipe\$pipeName")){
+                break
+            }
+            
+            Start-Sleep -Seconds 1
+        }
         Remove-Item "\\.\pipe\$pipeName" -ErrorAction Ignore
         $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
 
