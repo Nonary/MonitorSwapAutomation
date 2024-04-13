@@ -10,20 +10,20 @@ if ($null -eq $async) {
     exit
 }
 
-Start-Transcript -Path .\log.txt
+
 . .\MonitorSwapper-Functions.ps1
-$lock = $false
 
-
-
-$mutexName = "MonitorSwapper"
-$mutex = New-Object System.Threading.Mutex($false, $mutexName, [ref]$lock)
-
-# There is no need to have more than one of these scripts running.
-if (-not $mutex.WaitOne(0)) {
-    Write-Host "Another instance of the script is already running. Exiting..."
-    exit
+if(Test-Path "\\.\pipe\MonitorSwapper"){
+    Send-PipeMessage MonitorSwapper Terminate
+    Start-Sleep -Seconds 20
 }
+
+if(Test-Path "\\.\pipe\MonitorSwapper-OnStreamEnd"){
+    Send-PipeMessage MonitorSwapper-OnStreamEnd Terminate
+    Start-Sleep -Seconds 5
+}
+
+Start-Transcript -Path .\log.txt
 
 try {
     
@@ -60,6 +60,16 @@ try {
     # To allow other powershell scripts to communicate to this one.
     Start-Job -Name "MonitorSwapper-Pipe" -ScriptBlock {
         $pipeName = "MonitorSwapper"
+        for ($i = 0; $i -lt 10; $i++) {
+            # We could be pending a previous termination, so lets wait up to 10 seconds.
+            if(-not (Test-Path "\\.\pipe\$pipeName")){
+                break
+            }
+            
+            Start-Sleep -Seconds 1
+        }
+
+
         Remove-Item "\\.\pipe\$pipeName" -ErrorAction Ignore
         $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
 
@@ -77,10 +87,8 @@ try {
 
 
 
-    $eventMessageCount = 0
     Write-Host "Waiting for the next event to be called... (for starting/ending stream)"
     while ($true) {
-        $eventMessageCount += 1
         Start-Sleep -Seconds 1
         $eventFired = Get-Event -SourceIdentifier MonitorSwapper -ErrorAction SilentlyContinue
         $pipeJob = Get-Job -Name "MonitorSwapper-Pipe"
@@ -91,27 +99,29 @@ try {
                 OnStreamStart
             }
             else{
-                OnStreamEnd
+                OnStreamEndAsJob | Wait-Job
                 break;
             }
             Remove-Event -EventIdentifier $eventFired.EventIdentifier
         }
         elseif ($pipeJob.State -eq "Completed") {
             Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
-            OnStreamEnd
+            $endJob = OnStreamEndAsJob
+
+            # Continually poll the job to write to log file once every 1 seconds
+            while($endJob.State -ne "Completed"){
+                $endJob | Receive-Job
+                Start-Sleep -Seconds 1
+            }
+
+            # Pipe output one more time in case there is any remaining log statements.
+            $endJob | Receive-Job
             break;
-        }
-        elseif($eventMessageCount -gt 59) {
-            Write-Host "Still waiting for the next event to fire..."
-            $eventMessageCount = 0
         }
 
     
     }
 }
 finally {
-    Remove-Item "\\.\pipe\MonitorSwapper" -ErrorAction Ignore
-    $mutex.ReleaseMutex()
-    Remove-Event -SourceIdentifier MonitorSwapper -ErrorAction Ignore
     Stop-Transcript
 }

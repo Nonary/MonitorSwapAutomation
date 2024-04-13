@@ -103,6 +103,9 @@ If you encounter issues with the script, you can try the following:
 - You will have to do this workaround mentioned here: https://github.com/Nonary/MonitorSwapAutomation/issues/9 
   - There is currently a bug in the MultiMonitor tool in some scenarios with people who have dual screens. I do not have the source code for that tool, so it is impossible for me to fix directly, a workaround has to be done until resolved by Nirsoft. Please report your issue to [nirsofer@yahoo.com](mailto:nirsofer@yahoo.com) so he can gather more users and data to ultimately resolve this issue.
 
+#### Resolution Change when resuming or starting new stream
+- Double check and make sure you have put the correct "dummyMonitorId" in the settings.json file, that way the script doesn't attempt to restore monitor profiles that are already active.
+
 ### Recent Changes
 - Fixes a bug that prevented the script from restoring the display in some scenarios, if user left their Moonlight client at the host screen.
 - Fixed a bug that prevented the script from self-terminating itself after the user suspended the session longer than their defined grace period in the settings file.
