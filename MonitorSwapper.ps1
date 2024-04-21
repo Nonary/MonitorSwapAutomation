@@ -13,17 +13,27 @@ if ($null -eq $async) {
 
 . .\MonitorSwapper-Functions.ps1
 
-if(Test-Path "\\.\pipe\MonitorSwapper"){
+if (Test-Path "\\.\pipe\MonitorSwapper") {
     Send-PipeMessage MonitorSwapper Terminate
     Start-Sleep -Seconds 20
 }
 
-if(Test-Path "\\.\pipe\MonitorSwapper-OnStreamEnd"){
+if (Test-Path "\\.\pipe\MonitorSwapper-OnStreamEnd") {
     Send-PipeMessage MonitorSwapper-OnStreamEnd Terminate
     Start-Sleep -Seconds 5
 }
 
-Start-Transcript -Path .\log.txt
+# Attempt to start the transcript multiple times in case previous process is still running.
+for ($i = 0; $i -lt 10; $i++) {
+    
+    try {
+        Start-Transcript .\log.txt -ErrorAction Stop
+        break;
+    }
+    catch {
+        Start-Sleep -Seconds 1
+    }
+}
 
 try {
     
@@ -62,7 +72,7 @@ try {
         $pipeName = "MonitorSwapper"
         for ($i = 0; $i -lt 10; $i++) {
             # We could be pending a previous termination, so lets wait up to 10 seconds.
-            if(-not (Test-Path "\\.\pipe\$pipeName")){
+            if (-not (Test-Path "\\.\pipe\$pipeName")) {
                 break
             }
             
@@ -95,10 +105,10 @@ try {
         if ($null -ne $eventFired) {
             $eventName = $eventFired.MessageData
             Write-Host "Processing event: $eventName"
-            if($eventName -eq "Start"){
+            if ($eventName -eq "Start") {
                 OnStreamStart
             }
-            else{
+            else {
                 OnStreamEndAsJob | Wait-Job
                 break;
             }
@@ -106,16 +116,7 @@ try {
         }
         elseif ($pipeJob.State -eq "Completed") {
             Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
-            $endJob = OnStreamEndAsJob
-
-            # Continually poll the job to write to log file once every 1 seconds
-            while($endJob.State -ne "Completed"){
-                $endJob | Receive-Job
-                Start-Sleep -Seconds 1
-            }
-
-            # Pipe output one more time in case there is any remaining log statements.
-            $endJob | Receive-Job
+            OnStreamEndAsJob | Wait-Job | Receive-Job
             break;
         }
 

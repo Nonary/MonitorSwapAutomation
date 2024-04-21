@@ -107,7 +107,5 @@ If you encounter issues with the script, you can try the following:
 - Double check and make sure you have put the correct "dummyMonitorId" in the settings.json file, that way the script doesn't attempt to restore monitor profiles that are already active.
 
 ### Recent Changes
-- Fixes a bug that prevented the script from restoring the display in some scenarios, if user left their Moonlight client at the host screen.
-- Fixed a bug that prevented the script from self-terminating itself after the user suspended the session longer than their defined grace period in the settings file.
--  Better multi-monitor support by validating that all screens have been restored instead of just the main primary one.
--  Primary monitor id is no longer required in settings and has been removed, script will now automatically figure out the primary monitors identity.
+- v1.1.3 - Resolved an issue where monitor configurations could incorrectly alter under certain conditions, such as when a stream was suspended and subsequently resumed, if the monitor restoration process from a previous session was not completed successfully. This was due to an unexpected behavior in Windows' display settings API, which applied changes even when a monitor swap failed. The fix ensures the script no longer attempts to restore the primary monitor if users are currently streaming, which would cause the host resolution to change.
+- v1.1.4 - Fixed an issue that caused the script to prematurely exit before restoring the monitor (Fixes #31)

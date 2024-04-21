@@ -222,7 +222,7 @@ function Create-Pipe($pipeName) {
         
         for ($i = 0; $i -lt 10; $i++) {
             # We could be pending a previous termination, so lets wait up to 10 seconds.
-            if(-not (Test-Path "\\.\pipe\$pipeName")){
+            if (-not (Test-Path "\\.\pipe\$pipeName")) {
                 break
             }
             
