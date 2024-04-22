@@ -53,7 +53,7 @@ try {
                 }
                 else {
                     if (((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeriod) {
-                        New-Event -SourceIdentifier MonitorSwapper -MessageData "End"
+                        New-Event -SourceIdentifier MonitorSwapper -MessageData "GracePeriodExpired"
                         break;
                     }
         
@@ -69,6 +69,7 @@ try {
 
     # To allow other powershell scripts to communicate to this one.
     Start-Job -Name "MonitorSwapper-Pipe" -ScriptBlock {
+        Register-EngineEvent -SourceIdentifier MonitorSwapper -Forward
         $pipeName = "MonitorSwapper"
         for ($i = 0; $i -lt 10; $i++) {
             # We could be pending a previous termination, so lets wait up to 10 seconds.
@@ -93,6 +94,8 @@ try {
             $pipe.Dispose()
             $streamReader.Dispose()
         }
+
+        New-Event -SourceIdentifier MonitorSwapper -MessageData "Pipe-Terminated"
     }
 
 
@@ -101,7 +104,6 @@ try {
     while ($true) {
         Start-Sleep -Seconds 1
         $eventFired = Get-Event -SourceIdentifier MonitorSwapper -ErrorAction SilentlyContinue
-        $pipeJob = Get-Job -Name "MonitorSwapper-Pipe"
         if ($null -ne $eventFired) {
             $eventName = $eventFired.MessageData
             Write-Host "Processing event: $eventName"
@@ -109,18 +111,16 @@ try {
                 OnStreamStart
             }
             else {
-                OnStreamEndAsJob | Wait-Job
+                $job = OnStreamEndAsJob
+                while ($job.State -ne "Completed") {
+                    $job | Receive-Job
+                    Start-Sleep -Seconds 1
+                }
+                $job | Wait-Job | Receive-Job
                 break;
             }
             Remove-Event -EventIdentifier $eventFired.EventIdentifier
         }
-        elseif ($pipeJob.State -eq "Completed") {
-            Write-Host "Request to terminate has been processed, script will now revert monitor configuration."
-            OnStreamEndAsJob | Wait-Job | Receive-Job
-            break;
-        }
-
-    
     }
 }
 finally {

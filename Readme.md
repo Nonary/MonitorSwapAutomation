@@ -106,6 +106,14 @@ If you encounter issues with the script, you can try the following:
 #### Resolution Change when resuming or starting new stream
 - Double check and make sure you have put the correct "dummyMonitorId" in the settings.json file, that way the script doesn't attempt to restore monitor profiles that are already active.
 
-### Recent Changes
-- v1.1.3 - Resolved an issue where monitor configurations could incorrectly alter under certain conditions, such as when a stream was suspended and subsequently resumed, if the monitor restoration process from a previous session was not completed successfully. This was due to an unexpected behavior in Windows' display settings API, which applied changes even when a monitor swap failed. The fix ensures the script no longer attempts to restore the primary monitor if users are currently streaming, which would cause the host resolution to change.
-- v1.1.4 - Fixed an issue that caused the script to prematurely exit before restoring the monitor (Fixes #31)
+### Change Log
+
+#### v1.1.5
+- **Black Screen Issue Fix:** Addressed an issue caused by a bug in the Windows Display API that could result in games streaming as a black screen or freezing after menu interactions.
+- **Code Cleanup:** Refactored the script to improve performance and removed unnecessary code.
+
+#### v1.1.4
+- **Monitor Restoration Fix:** Corrected a premature script exit that occurred before the monitor could be restored, resolving issue #31.
+
+#### v1.1.3
+- **Monitor Configuration Stability Fix:** Solved a problem where monitor configurations could incorrectly change under specific conditions, such as when a stream was suspended and then resumed without completing the monitor restoration process from a previous session. This issue stemmed from an unexpected behavior in Windows' display settings API, which applied changes even when a monitor swap failed. The fix prevents the script from attempting to restore the primary monitor during streaming sessions, avoiding changes in host resolution.

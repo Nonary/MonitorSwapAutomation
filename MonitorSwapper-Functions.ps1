@@ -9,6 +9,11 @@ $script:attempt = 0
 
 function OnStreamStart() {
     # Attempt to load the dummy profile for up to 5 times in total.
+    # Always try to restore it at least once, due to a bug in Windows... if a profile restoration fails (especially when switching back to the primary screen),
+    # and a stream is initiated again, the display switcher built into windows (Windows + P) may not update and remain stuck on the last used setting.
+    # This can cause significant problems in some games, including frozen visuals and black screens.    
+    & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
+    Start-Sleep -Seconds 2
     for ($i = 0; $i -lt 6; $i++) {
         if (-not (IsMonitorActive -monitorId $dummyMonitorId)) {
             & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
@@ -161,6 +166,7 @@ function OnStreamEndAsJob() {
             $tries = 0
 
             if ($job.State -eq "Completed" -or (IsCurrentlyStreaming)) {
+                Write-Host "Another session of MonitorSwapper was started, gracefully closing this one..."
                 break;
             }
 
