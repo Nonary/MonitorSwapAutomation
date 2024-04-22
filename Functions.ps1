@@ -7,7 +7,7 @@ $script:attempt = 0
 
 
 function OnStreamStart() {
-
+return $false
 }
 
 
