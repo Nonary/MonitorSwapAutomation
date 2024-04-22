@@ -2,7 +2,7 @@ param($async)
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
-$scriptName = "SunshineScriptInstaller"
+$scriptName = Split-Path $path -Leaf
 
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
@@ -54,7 +54,7 @@ try {
                 }
                 else {
                     if (((Get-Date) - $lastStreamed).TotalSeconds -gt $gracePeriod) {
-                        New-Event -SourceIdentifier MonitorSwapper -MessageData "GracePeriodExpired"
+                        New-Event -SourceIdentifier $scriptName -MessageData "GracePeriodExpired"
                         break;
                     }
         
@@ -70,7 +70,7 @@ try {
 
     # To allow other powershell scripts to communicate to this one.
     Start-Job -Name "$scriptName-Pipe" -ScriptBlock {
-        Register-EngineEvent -SourceIdentifier MonitorSwapper -Forward
+        Register-EngineEvent -SourceIdentifier $scriptName -Forward
         for ($i = 0; $i -lt 10; $i++) {
             # We could be pending a previous termination, so lets wait up to 10 seconds.
             if (-not (Test-Path "\\.\pipe\$scriptName")) {
