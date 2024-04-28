@@ -2,26 +2,15 @@ param($terminate)
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $scriptName = Split-Path $path -Leaf
 Set-Location $path
-$settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $script:attempt = 0
-
-
-function OnStreamStart() {
-return $false
-}
-
-
-function OnStreamEnd() {
-    return $true
-}
-
 
 function OnStreamEndAsJob() {
 
     return Start-Job -Name "$scriptName-OnStreamEnd" -ScriptBlock {
         param($path)
         Set-Location $path
-        . .\Functions.ps1
+        . .\Helpers.ps1
+        . .\Events.ps1
     
         Write-Host "Stream has ended, now invoking code"
         $job = Create-Pipe -pipeName "$scriptName-OnStreamEnd" 
