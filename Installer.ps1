@@ -61,6 +61,25 @@ function Remove-Command {
     return [object[]]$filteredCommands
 }
 
+function Verify-Command {
+
+    # Get the current value of global_prep_cmd as a JSON string
+    $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $confPath
+
+    # Convert the JSON string to an array of objects
+    $globalPrepCmdArray = $globalPrepCmdJson | ConvertFrom-Json
+    $matchingCommands = @()
+
+    # Find any existing matching Commands
+    foreach ($command in $globalPrepCmdArray) {
+        if ($command.do -like "*$scriptName*") {
+            $matchingCommands += $command
+        }
+    }
+    return $matchingCommands.Length -gt 0
+}
+
+
 # Set a new value for global_prep_cmd in the configuration file
 function Set-GlobalPrepCommand {
     param (
