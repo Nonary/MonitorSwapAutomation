@@ -78,7 +78,8 @@ function Send-PipeMessage($pipeName, $message) {
 
 function Create-Pipe($pipeName) {
     return Start-Job -Name "$pipeName-PipeJob" -ScriptBlock {
-        param($pipeName) 
+        param($pipeName, $scriptName) 
+        Register-EngineEvent -SourceIdentifier $scriptName -Forward
         
         for ($i = 0; $i -lt 10; $i++) {
             # We could be pending a previous termination, so lets wait up to 10 seconds.
@@ -100,10 +101,12 @@ function Create-Pipe($pipeName) {
             Write-Output "Terminating pipe..."
             $pipe.Dispose()
             $streamReader.Dispose()
+            New-Event -SourceIdentifier $scriptName -MessageData "$pipeName-Terminated"
         }
-    } -ArgumentList $pipeName
+    } -ArgumentList $pipeName, $scriptName
 }
 
 if ($terminate) {
+    Write-Host "Stopping Script"
     Stop-Script | Out-Null
 }

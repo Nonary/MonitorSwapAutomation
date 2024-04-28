@@ -1,8 +1,8 @@
 param($install)
 $filePath = $($MyInvocation.MyCommand.Path)
 $scriptRoot = Split-Path $filePath -Parent
-$scriptName = Split-Path $path -Leaf
-$scriptPath = "$scriptRoot\$scriptName.ps1"
+$scriptName = Split-Path $filePath -Leaf
+$scriptPath = "$scriptRoot\StreamMonitor.ps1"
 
 
 # This script modifies the global_prep_cmd setting in the Sunshine configuration file
@@ -61,7 +61,7 @@ function Remove-Command {
     return [object[]]$filteredCommands
 }
 
-function Verify-Command {
+function Verify-Installation {
 
     # Get the current value of global_prep_cmd as a JSON string
     $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $confPath
@@ -76,7 +76,9 @@ function Verify-Command {
             $matchingCommands += $command
         }
     }
-    return $matchingCommands.Length -gt 0
+    if(-not ($matchingCommands.Length -gt 0)){
+        throw "Could not verify that the script had successfully installed."
+    }
 }
 
 
@@ -132,7 +134,7 @@ function Add-Command {
     $command = [PSCustomObject]@{
         do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`""
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Functions.ps1`" $true"
+        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" $true"
     }
 
     # Add the new object to the global_prep_cmd array
@@ -149,7 +151,7 @@ else {
 }
 
 Set-GlobalPrepCommand $commands
-
+Verify-Installation
 
 $sunshineService = Get-Service -ErrorAction Ignore | Where-Object {$_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService'}
 # In order for the commands to apply we have to restart the service

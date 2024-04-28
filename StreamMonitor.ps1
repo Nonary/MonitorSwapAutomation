@@ -3,7 +3,6 @@ $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
 $scriptName = Split-Path $path -Leaf
-
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
 if ($null -eq $async) {
     Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
@@ -11,8 +10,8 @@ if ($null -eq $async) {
     exit
 }
 
-
-. .\Functions.ps1
+. .\Helpers.ps1
+. .\Events.ps1
 
 if (Test-Path "\\.\pipe\$scriptName") {
     Send-PipeMessage $scriptName Terminate
@@ -41,7 +40,7 @@ try {
     # Asynchronously start the script, so we can use a named pipe to terminate it.
     Start-Job -Name "$($scriptName)Job" -ScriptBlock {
         param($path, $gracePeriod)
-        . $path\Functions.ps1
+        . $path\Helpers.ps1
         $lastStreamed = Get-Date
 
 
@@ -68,37 +67,9 @@ try {
     } -ArgumentList $path, $settings.gracePeriod
 
 
-    # To allow other powershell scripts to communicate to this one.
-    Start-Job -Name "$scriptName-Pipe" -ScriptBlock {
-        Register-EngineEvent -SourceIdentifier $scriptName -Forward
-        for ($i = 0; $i -lt 10; $i++) {
-            # We could be pending a previous termination, so lets wait up to 10 seconds.
-            if (-not (Test-Path "\\.\pipe\$scriptName")) {
-                break
-            }
-            
-            Start-Sleep -Seconds 1
-        }
-
-
-        Remove-Item "\\.\pipe\$scriptName" -ErrorAction Ignore
-        $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($scriptName, [System.IO.Pipes.PipeDirection]::In, 1, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
-
-        $streamReader = New-Object System.IO.StreamReader($pipe)
-        Write-Output "Waiting for named pipe to recieve kill command"
-        $pipe.WaitForConnection()
-
-        $message = $streamReader.ReadLine()
-        if ($message -eq "Terminate") {
-            Write-Output "Terminating pipe..."
-            $pipe.Dispose()
-            $streamReader.Dispose()
-        }
-
-        New-Event -SourceIdentifier $scriptName -MessageData "Pipe-Terminated"
-    }
-
-
+    # Wait a minute, this looks like black magic! This pipe fires an event 
+    # when it finishe; No manual monitoring required!
+    Create-Pipe $scriptName
 
     Write-Host "Waiting for the next event to be called... (for starting/ending stream)"
     while ($true) {
