@@ -16,8 +16,48 @@ if (-not $isAdmin) {
     exit
 }
 
+function Test-AndRequest-SunshineConfig {
+    param(
+        [string]$InitialPath
+    )
+
+    # Check if the initial path exists
+    if (Test-Path $InitialPath) {
+        Write-Host "File found at: $InitialPath"
+        return $InitialPath
+    }
+    else {
+        # Show error message dialog
+        [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
+        [System.Windows.Forms.MessageBox]::Show("Sunshine configuration could not be found. Please locate it.", "Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)  | Out-Null
+
+        # Open file dialog
+        $fileDialog = New-Object System.Windows.Forms.OpenFileDialog
+        $fileDialog.Title = "Open sunshine.conf"
+        $fileDialog.Filter = "Configuration files (*.conf)|*.conf"
+        $fileDialog.InitialDirectory = [System.IO.Path]::GetDirectoryName($InitialPath)
+
+        if ($fileDialog.ShowDialog() -eq "OK") {
+            $selectedPath = $fileDialog.FileName
+            # Check if the selected path is valid
+            if (Test-Path $selectedPath) {
+                Write-Host "File selected: $selectedPath"
+                return $selectedPath
+            }
+            else {
+                Write-Error "Invalid file path selected."
+            }
+
+        }
+        else {
+            Write-Error "Sunshine Configuiration file dialog was canceled or no valid file was selected."
+            exit 1
+        }
+    }
+}
+        
 # Define the path to the Sunshine configuration file
-$confPath = "C:\Program Files\Sunshine\config\sunshine.conf"
+$confPath = Test-AndRequest-SunshineConfig -InitialPath  "C:\Program Files\Sunshine\config\sunshine.conf"
 $scriptRoot = Split-Path $scriptPath -Parent
 
 
