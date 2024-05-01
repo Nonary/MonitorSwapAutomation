@@ -1,4 +1,4 @@
-param($async)
+param($async, $allowMultipleSessions)
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
 $settings = Get-Content -Path .\settings.json | ConvertFrom-Json
@@ -13,27 +13,12 @@ if ($null -eq $async) {
 . .\Helpers.ps1
 . .\Events.ps1
 
-if (Test-Path "\\.\pipe\$scriptName") {
-    Send-PipeMessage $scriptName Terminate
-    Start-Sleep -Seconds 20
-}
 
-if (Test-Path "\\.\pipe\$scriptName-OnStreamEnd") {
-    Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
-    Start-Sleep -Seconds 5
-}
+## Modifications of the Sunshine Script Installer Template go here
 
-# Attempt to start the transcript multiple times in case previous process is still running.
-for ($i = 0; $i -lt 10; $i++) {
-    
-    try {
-        Start-Transcript .\log.txt -ErrorAction Stop
-        break;
-    }
-    catch {
-        Start-Sleep -Seconds 1
-    }
-}
+
+
+## End modifications block
 
 try {
     
