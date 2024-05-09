@@ -16,6 +16,35 @@ if ($null -eq $async) {
 
 ## Modifications of the Sunshine Script Installer Template go here
 
+if (Test-Path "\\.\pipe\$scriptName") {
+    Send-PipeMessage $scriptName Terminate
+    Start-Sleep -Seconds 20
+}
+
+if (Test-Path "\\.\pipe\$scriptName-OnStreamEnd") {
+    Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
+    Start-Sleep -Seconds 5
+}
+
+# Attempt to start the transcript multiple times in case previous process is still running.
+for ($i = 0; $i -lt 60; $i++) {
+    
+    $timestamp = Get-Date -Format "yyyyMMddHHmmss"
+    $logFileName = ".\log_$timestamp.txt"
+
+    try {
+        Start-Transcript $logFileName -ErrorAction Stop
+        break;
+    }
+    catch {
+        Start-Sleep -Seconds 1
+    }
+
+    if ($i -eq 59) {
+        Start-Transcript $logFileName # If the file happens to be blocked, create a new log file with time stamp instead.
+    }
+}
+
 
 
 ## End modifications block

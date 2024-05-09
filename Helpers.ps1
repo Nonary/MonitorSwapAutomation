@@ -11,8 +11,6 @@ function OnStreamEndAsJob() {
         Set-Location $path
         . .\Helpers.ps1
         . .\Events.ps1
-    
-        Write-Host "Stream has ended, now invoking code"
         $job = Create-Pipe -pipeName "$scriptName-OnStreamEnd" 
 
         while ($true) {
