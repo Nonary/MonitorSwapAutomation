@@ -7,7 +7,7 @@ $script:attempt = 0
 function OnStreamEndAsJob() {
 
     return Start-Job -Name "$scriptName-OnStreamEnd" -ScriptBlock {
-        param($path)
+        param($path, $arguments)
         Set-Location $path
         . .\Helpers.ps1
         . .\Events.ps1
@@ -22,19 +22,19 @@ function OnStreamEndAsJob() {
                 break;
             }
 
+            if ((OnStreamEnd $arguments)) {
+                break;
+            }
+
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
                 Start-Sleep -Milliseconds 200
                 $tries++
             }
 
-
-            if ((OnStreamEnd)) {
-                break;
-            }
         } 
         # We no longer need to listen for the end command since we've already restored at this point.
         Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
-    } -ArgumentList $path
+    } -ArgumentList $path, $script:arguments
 }
 
 
@@ -103,6 +103,51 @@ function Create-Pipe($pipeName) {
         }
     } -ArgumentList $pipeName, $scriptName
 }
+
+function Remove-OldLogs {
+
+    # Get all log files in the directory
+    $logFiles = Get-ChildItem -Path './logs' -Filter "log_*.txt" -ErrorAction SilentlyContinue
+
+    # Sort the files by creation time, oldest first
+    $sortedFiles = $logFiles | Sort-Object -Property CreationTime -ErrorAction SilentlyContinue
+
+    if ($sortedFiles) {
+        # Calculate how many files to delete
+        $filesToDelete = $sortedFiles.Count - 10
+
+        # Check if there are more than 10 files
+        if ($filesToDelete -gt 0) {
+            # Delete the oldest files, keeping the latest 10
+            $sortedFiles[0..($filesToDelete - 1)] | Remove-Item -Force
+        } 
+    }
+}
+
+function Start-Logging {
+    # Get the current timestamp
+    $timeStamp = Get-Date -Format "yyyyMMddHHmmss"
+    $logDirectory = "./logs"
+
+    # Define the path and filename for the log file
+    $logFileName = "log_$timeStamp.txt"
+    $logFilePath = Join-Path $logDirectory $logFileName
+
+    # Check if the log directory exists, and create it if it does not
+    if (-not (Test-Path $logDirectory)) {
+        New-Item -Path $logDirectory -ItemType Directory
+    }
+
+    # Start logging to the log file
+    Start-Transcript -Path $logFilePath
+}
+
+function Stop-Logging {
+    Stop-Transcript
+}
+
+
+
 
 if ($terminate) {
     Write-Host "Stopping Script"

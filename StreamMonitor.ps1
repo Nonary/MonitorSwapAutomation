@@ -13,8 +13,8 @@ if ($null -eq $async) {
 . .\Helpers.ps1
 . .\Events.ps1
 
-
-## Modifications of the Sunshine Script Installer Template go here
+Remove-OldLogs
+Start-Logging
 
 if (Test-Path "\\.\pipe\$scriptName") {
     Send-PipeMessage $scriptName Terminate
@@ -26,28 +26,6 @@ if (Test-Path "\\.\pipe\$scriptName-OnStreamEnd") {
     Start-Sleep -Seconds 5
 }
 
-# Attempt to start the transcript multiple times in case previous process is still running.
-for ($i = 0; $i -lt 60; $i++) {
-    
-    $timestamp = Get-Date -Format "yyyyMMddHHmmss"
-    $logFileName = ".\log_$timestamp.txt"
-
-    try {
-        Start-Transcript $logFileName -ErrorAction Stop
-        break;
-    }
-    catch {
-        Start-Sleep -Seconds 1
-    }
-
-    if ($i -eq 59) {
-        Start-Transcript $logFileName # If the file happens to be blocked, create a new log file with time stamp instead.
-    }
-}
-
-
-
-## End modifications block
 
 try {
     
@@ -78,12 +56,11 @@ try {
             }
         }
     
-    } -ArgumentList $path, $settings.gracePeriod
+    } -ArgumentList $path, $settings.gracePeriod | Out-Null
 
 
-    # Wait a minute, this looks like black magic! This pipe fires an event 
-    # when it finishe; No manual monitoring required!
-    Create-Pipe $scriptName
+    # This might look like black magic, but basically we don't have to monitor this pipe because it fires off an event.
+    Create-Pipe $scriptName | Out-Null
 
     Write-Host "Waiting for the next event to be called... (for starting/ending stream)"
     while ($true) {
@@ -109,5 +86,8 @@ try {
     }
 }
 finally {
-    Stop-Transcript
+    if ($mutex) {
+        $mutex.ReleaseMutex()
+    }
+    Stop-Logging
 }
