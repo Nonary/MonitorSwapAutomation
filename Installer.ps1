@@ -1,7 +1,6 @@
 param($install)
 $filePath = $($MyInvocation.MyCommand.Path)
 $scriptRoot = Split-Path $filePath -Parent
-$scriptName = Split-Path $filePath -Leaf
 $scriptPath = "$scriptRoot\StreamMonitor.ps1"
 
 
@@ -89,7 +88,6 @@ function Get-GlobalPrepCommand {
 
 # Remove any existing commands that contain the scripts name from the global_prep_cmd value
 function Remove-Command {
-
     # Get the current value of global_prep_cmd as a JSON string
     $globalPrepCmdJson = Get-GlobalPrepCommand -ConfigPath $confPath
 
@@ -99,7 +97,7 @@ function Remove-Command {
 
     # Remove any existing matching Commands
     for ($i = 0; $i -lt $globalPrepCmdArray.Count; $i++) {
-        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptName*")) {
+        if (-not ($globalPrepCmdArray[$i].do -like "*$scriptRoot*")) {
             $filteredCommands += $globalPrepCmdArray[$i]
         }
     }

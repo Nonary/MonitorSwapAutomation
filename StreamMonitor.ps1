@@ -13,18 +13,13 @@ if ($null -eq $async) {
 . .\Helpers.ps1
 . .\Events.ps1
 
+# If there is any currently running sessions, close them out.
+for ($i = 0; $i -lt 10; $i++) {
+    Send-PipeMessage -pipeName $scriptName Terminate
+}
+
 Remove-OldLogs
 Start-Logging
-
-if (Test-Path "\\.\pipe\$scriptName") {
-    Send-PipeMessage $scriptName Terminate
-    Start-Sleep -Seconds 20
-}
-
-if (Test-Path "\\.\pipe\$scriptName-OnStreamEnd") {
-    Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
-    Start-Sleep -Seconds 5
-}
 
 
 try {

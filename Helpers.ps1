@@ -16,23 +16,27 @@ function OnStreamEndAsJob() {
         while ($true) {
             $maxTries = 25
             $tries = 0
-
-            if ($job.State -eq "Completed" -or (IsCurrentlyStreaming)) {
-                Write-Host "Another session of $scriptName was started, gracefully closing this one..."
+        
+            if ($job.State -eq "Completed") {
+                Write-Host "Another instance of $scriptName has been started again. This current session is now redundant and will terminate without further action."
                 break;
             }
-
+        
+            if ((IsCurrentlyStreaming)) {
+                Write-Host "Streaming is active. To prevent potential conflicts, this script will now terminate prematurely."
+            }
+        
             if ((OnStreamEnd $arguments)) {
                 break;
             }
-
+        
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
                 Start-Sleep -Milliseconds 200
                 $tries++
             }
-
-        } 
-        # We no longer need to listen for the end command since we've already restored at this point.
+        
+        }
+        # Allow job to complete by terminating the pipe, this line wouldn't be reached unless the OnStreamEnd was successful.
         Send-PipeMessage "$scriptName-OnStreamEnd" Terminate
     } -ArgumentList $path, $script:arguments
 }
@@ -126,7 +130,7 @@ function Remove-OldLogs {
 
 function Start-Logging {
     # Get the current timestamp
-    $timeStamp = Get-Date -Format "yyyyMMddHHmmss"
+    $timeStamp = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
     $logDirectory = "./logs"
 
     # Define the path and filename for the log file
