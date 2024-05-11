@@ -1,17 +1,28 @@
-param($async, $allowMultipleSessions)
+param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [Alias("n")]
+    [string]$scriptName,
+
+    [Parameter(Position = 1)]
+    [Alias("sib")]
+    [bool]$startInBackground
+)
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
-$settings = Get-Content -Path .\settings.json | ConvertFrom-Json
-$scriptName = Split-Path $path -Leaf
+. .\Helpers.ps1 -n $scriptName
+. .\Events.ps1 -n $scriptName
+$settings = Get-Settings
+$DebugPreference = if ($settings.debug) { "Continue" } else { "SilentlyContinue" }
 # Since pre-commands in sunshine are synchronous, we'll launch this script again in another powershell process
-if ($null -eq $async) {
-    Start-Process powershell.exe  -ArgumentList "-ExecutionPolicy Bypass -File `"$($MyInvocation.MyCommand.Path)`" $($MyInvocation.MyCommand.UnboundArguments) -async $true" -WindowStyle Hidden
+if ($startInBackground -eq $false) {
+    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+    $arguments = "-ExecutionPolicy Bypass -Command `"& '$scriptPath\StreamMonitor.ps1' -scriptName $scriptName -sib 1`""
+    Start-Process powershell.exe -ArgumentList $arguments -WindowStyle Hidden
     Start-Sleep -Seconds $settings.startDelay
     exit
 }
 
-. .\Helpers.ps1
-. .\Events.ps1
 
 # If there is any currently running sessions, close them out.
 for ($i = 0; $i -lt 10; $i++) {
@@ -21,13 +32,19 @@ for ($i = 0; $i -lt 10; $i++) {
 Remove-OldLogs
 Start-Logging
 
+# Exit the script if another instance is already running.
+if (-not $mutex.WaitOne(0)) {
+    Write-Host "Exiting: Another instance of the script is currently running."
+    exit
+}
+# END OF OPTIONAL MUTEX HANDLING
 
 try {
     
     # Asynchronously start the script, so we can use a named pipe to terminate it.
     Start-Job -Name "$($scriptName)Job" -ScriptBlock {
-        param($path, $gracePeriod)
-        . $path\Helpers.ps1
+        param($path, $scriptName, $gracePeriod)
+        . $path\Helpers.ps1 -n $scriptName
         $lastStreamed = Get-Date
 
 
@@ -51,7 +68,7 @@ try {
             }
         }
     
-    } -ArgumentList $path, $settings.gracePeriod | Out-Null
+    } -ArgumentList $path, $scriptName, $settings.gracePeriod | Out-Null
 
 
     # This might look like black magic, but basically we don't have to monitor this pipe because it fires off an event.

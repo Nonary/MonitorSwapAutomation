@@ -1,8 +1,18 @@
-param($install)
+param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [Alias("n")]
+    [string]$scriptName,
+
+    [Parameter(Position = 1, Mandatory = $true)]
+    [Alias("i")]
+    [string]$install
+)
+Set-Location (Split-Path $MyInvocation.MyCommand.Path -Parent)
 $filePath = $($MyInvocation.MyCommand.Path)
 $scriptRoot = Split-Path $filePath -Parent
 $scriptPath = "$scriptRoot\StreamMonitor.ps1"
-
+. .\Helpers.ps1 -n $scriptName
+$settings = Get-Settings
 
 # This script modifies the global_prep_cmd setting in the Sunshine configuration file
 
@@ -17,7 +27,7 @@ $isAdmin = [bool]([System.Security.Principal.WindowsIdentity]::GetCurrent().Grou
 
 # If the user is not an administrator and UAC is enabled, re-launch the script with elevated privileges
 if (-not $isAdmin -and (Test-UACEnabled)) {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$filePath`" $install"
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-ExecutionPolicy Bypass -NoExit -File `"$filePath`" -n `"$scriptName`" -i `"$install`""
     exit
 }
 
@@ -148,6 +158,47 @@ function Set-GlobalPrepCommand {
     # Write the modified config array back to the file
     $config | Set-Content -Path $confPath -Force
 }
+function OrderCommands($commands, $scriptNames) {
+    $orderedCommands = New-Object System.Collections.ArrayList
+
+    $orderedCommands.AddRange($commands)
+
+    for ($i = 1; $i -lt $scriptNames.Count; $i++) {
+        if($i -1 -lt 0) {
+            continue
+        }
+
+        $before = $scriptNames[$i - 1]
+        $after = $scriptNames[$i]
+
+        $afterCommand = $orderedCommands | Where-Object { $_.do -like "*$after*" } | Select-Object -First 1
+
+        $beforeIndex = $null
+        for ($j = 0; $j -lt $orderedCommands.Count; $j++) {
+            if ($orderedCommands[$j].do -like "*$before*") {
+                $beforeIndex = $j
+                break
+            }
+        }
+        $afterIndex = $null
+        for ($j = 0; $j -lt $orderedCommands.Count; $j++) {
+            if ($orderedCommands[$j].do -like "*$after*") {
+                $afterIndex = $j
+                break
+            }
+        }
+
+        if($null -ne $afterIndex -and ($afterIndex -lt $beforeIndex)) {
+            $orderedCommands.RemoveAt($afterIndex)
+            $orderedCommands.Insert($beforeIndex, $afterCommand)
+
+        }
+
+    }
+
+    $orderedCommands
+
+}
 
 function Add-Command {
 
@@ -155,9 +206,9 @@ function Add-Command {
     $globalPrepCmdArray = Remove-Command -ConfigPath $confPath
 
     $command = [PSCustomObject]@{
-        do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`""
+        do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`" -n $scriptName"
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" $true"
+        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" -n $scriptName -t 1"
     }
 
     # Add the new object to the global_prep_cmd array
@@ -166,16 +217,20 @@ function Add-Command {
     return [object[]]$globalPrepCmdArray
 }
 $commands = @()
-if ($install -eq "True") {
+if ($install -eq 1) {
     $commands = Add-Command
 }
 else {
     $commands = Remove-Command 
 }
 
+if ($settings.installationOrderPreferences.enabled) {
+    $commands = OrderCommands $commands $settings.installationOrderPreferences.scriptNames
+}
+
 Set-GlobalPrepCommand $commands
 
-$sunshineService = Get-Service -ErrorAction Ignore | Where-Object {$_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService'}
+$sunshineService = Get-Service -ErrorAction Ignore | Where-Object { $_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService' }
 # In order for the commands to apply we have to restart the service
 $sunshineService | Restart-Service  -WarningAction SilentlyContinue
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."

@@ -1,13 +1,26 @@
-# Determine the path of the currently running script and set the working directory to that path
+param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [Alias("n")]
+    [string]$scriptName
+)
 $path = (Split-Path $MyInvocation.MyCommand.Path -Parent)
 Set-Location $path
+. .\Helpers.ps1 -n $scriptName
 
 # Load settings from a JSON file located in the same directory as the script
-$settings = Get-Content -Path .\settings.json | ConvertFrom-Json
+$settings = Get-Settings
+
+# Initialize a script scoped dictionary to store variables.
+# This dictionary is used to pass parameters to functions that might not have direct access to script scope, like background jobs.
+if (-not $script:arguments) {
+    $script:arguments = @{}
+}
+
+# Load settings from a JSON file located in the same directory as the script
+$settings = Get-Settings
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
 $dummyMonitorId = $settings.dummyMonitorId
 
-. .\Helpers.ps1
 
 function OnStreamStart() {
     # Attempt to load the dummy profile for up to 5 times in total.
