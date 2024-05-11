@@ -146,7 +146,12 @@ function IsPrimaryMonitorActive() {
 
     $successCount = ($checks | Where-Object { $_ -eq $true }).Count
     if ($successCount -ge $primaryMonitorIds.Count) {
-        return $true
+        if(-not (IsMonitorActive -monitorId $dummyMonitorId)){
+            return $true
+        }
+        else {
+            Write-Host "Error: The dummy plug did not de-activate even though the primary screen is allegedly on."
+        }
     }
 
     return $false
