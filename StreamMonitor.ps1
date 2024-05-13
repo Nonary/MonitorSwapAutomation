@@ -32,13 +32,6 @@ for ($i = 0; $i -lt 10; $i++) {
 Remove-OldLogs
 Start-Logging
 
-# Exit the script if another instance is already running.
-if (-not $mutex.WaitOne(0)) {
-    Write-Host "Exiting: Another instance of the script is currently running."
-    exit
-}
-# END OF OPTIONAL MUTEX HANDLING
-
 try {
     
     # Asynchronously start the script, so we can use a named pipe to terminate it.
