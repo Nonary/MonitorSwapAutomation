@@ -138,7 +138,7 @@ function Remove-OldLogs {
 
 function Start-Logging {
     # Get the current timestamp
-    $timeStamp = Get-Date -Format "yyyy_MM_dd_HH_mm_ss"
+    $timeStamp = [int][double]::Parse((Get-Date -UFormat "%s"))
     $logDirectory = "./logs"
 
     # Define the path and filename for the log file
