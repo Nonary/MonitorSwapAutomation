@@ -64,6 +64,12 @@ function OnStreamEndAsJob() {
                 Write-Debug "OnStreamEnd returned true. Exiting loop."
                 break;
             }
+
+            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
+            if ((OnStreamEnd $arguments)) {
+                Write-Debug "OnStreamEnd returned true. Exiting loop."
+                break;
+            }
         
             if ((IsCurrentlyStreaming)) {
                 Write-Host "Streaming is active. To prevent potential conflicts, this script will now terminate prematurely."
@@ -88,7 +94,7 @@ function OnStreamEndAsJob() {
 function IsCurrentlyStreaming() {
     $sunshineProcess = Get-Process sunshine -ErrorAction SilentlyContinue
 
-    if($null -ne $sunshineProcess) {
+    if($null -eq $sunshineProcess) {
         return $false
     }
     return $null -ne (Get-NetUDPEndpoint -OwningProcess $sunshineProcess.Id -ErrorAction Ignore)
