@@ -70,8 +70,7 @@ This is useful for users of Sunshine (a screen sharing software) who experience 
 
 8. Install the script by double clicking the Install.bat file, you may get a smart-screen warning... this is normal.
 9. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
-10. Verify that the sunshine.conf file is configured properly, if successful the global_prep_cmd should look like this
-    global_prep_cmd = [{"do":"powershell.exe -executionpolicy bypass -file \"F:\\sources\\MonitorSwapAutomation\\MonitorSwap-Dummy.ps1\"","elevated":"false","undo":"powershell.exe -executionpolicy bypass -file \"F:\\sources\\MonitorSwapAutomation\\MonitorSwap-Functions.ps1\" True"}]
+10. If there are no error messages presented on the screen, the script successfully installed and you can close the terminal.
 
 The paths referenced above will vary on your machine.
 ## TROUBLESHOOTING
@@ -107,6 +106,13 @@ If you encounter issues with the script, you can try the following:
 - Double check and make sure you have put the correct "dummyMonitorId" in the settings.json file, that way the script doesn't attempt to restore monitor profiles that are already active.
 
 ### Change Log
+### v1.1.7
+- **File Lock Fixes**: Reduced the frequency of issues that caused file lockouts during the parsing of monitor configurations.
+- **Improved Profile Restore**: Enhanced the validation logic to ensure all monitor IDs match, thereby reducing the occurrence of false positives.
+
+#### v1.1.6
+- **Logging Fix:** Fixed an issue where the log file wasn't created if a new stream started before the monitor was restored from the previous session.
+- **Code Update:** Updated the script to use the [SunshineScript Installer template](https://github.com/Nonary/SunshineScriptInstaller), simplifying the maintenance of the installation process for all projects.
 
 #### v1.1.5
 - **Black Screen Issue Fix:** Addressed an issue caused by a bug in the Windows Display API that could result in games streaming as a black screen or freezing after menu interactions.
