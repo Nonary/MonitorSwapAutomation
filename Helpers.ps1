@@ -12,6 +12,14 @@ $script:attempt = 0
 function OnStreamEndAsJob() {
     return Start-Job -Name "$scriptName-OnStreamEnd" -ScriptBlock {
         param($path, $scriptName, $arguments)
+
+        function Write-Debug($message){
+            if ($arguments['debug']) {
+                Write-Host "DEBUG: $message"
+            }
+        }
+
+        Write-Host $arguments
         
         Write-Debug "Setting location to $path"
         Set-Location $path
@@ -100,7 +108,7 @@ function OnStreamEndAsJob() {
 function IsCurrentlyStreaming() {
     $sunshineProcess = Get-Process sunshine -ErrorAction SilentlyContinue
 
-    if($null -eq $sunshineProcess) {
+    if ($null -eq $sunshineProcess) {
         return $false
     }
     return $null -ne (Get-NetUDPEndpoint -OwningProcess $sunshineProcess.Id -ErrorAction Ignore)
@@ -135,7 +143,8 @@ function Send-PipeMessage($pipeName, $message) {
             # We don't care if the disposal fails, this is common with async pipes.
             # Also, this powershell script will terminate anyway.
         }
-    } else {
+    }
+    else {
         Write-Debug "Pipe not found: $pipeName"
     }
 }

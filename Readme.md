@@ -106,9 +106,14 @@ If you encounter issues with the script, you can try the following:
 - Double check and make sure you have put the correct "dummyMonitorId" in the settings.json file, that way the script doesn't attempt to restore monitor profiles that are already active.
 
 ### Change Log
-### v1.1.7
-- **File Lock Fixes**: Reduced the frequency of issues that caused file lockouts during the parsing of monitor configurations.
-- **Improved Profile Restore**: Enhanced the validation logic to ensure all monitor IDs match, thereby reducing the occurrence of false positives.
+
+### v1.1.8
+- **Debug Logging:** Added debug write statements across the app to facilitate easier troubleshooting of future issues.
+- **Monitor Flicker Fix:** Resolved an issue causing the monitor to constantly flicker when applying the workaround mentioned in issue [#9](https://github.com/Nonary/MonitorSwapAutomation/issues/9).
+
+#### v1.1.7
+- **File Lock Fixes:** Reduced the frequency of issues causing file lockouts during the parsing of monitor configurations.
+- **Improved Profile Restore:** Enhanced the validation logic to ensure all monitor IDs match, reducing the occurrence of false positives.
 
 #### v1.1.6
 - **Logging Fix:** Fixed an issue where the log file wasn't created if a new stream started before the monitor was restored from the previous session.
