@@ -114,25 +114,14 @@ Check the logs to see if they claim the primary monitor was successfully restore
 - **Updated MultiMonitorTool:** Updated to v2.10.
 - **Primary Monitor Validation:** Added a new option to increase the strictness of validation on restoring the primary monitor. This should reduce false positives for some users but may cause problems for others, so this option is not enabled by default.
 
-### v1.1.8
+#### v1.1.8
 - **Debug Logging:** Added debug write statements across the app to facilitate easier troubleshooting of future issues.
 - **Monitor Flicker Fix:** Resolved an issue causing the monitor to constantly flicker when applying the workaround mentioned in issue [#9](https://github.com/Nonary/MonitorSwapAutomation/issues/9).
 
-### v1.1.7
+#### v1.1.7
 - **File Lock Fixes:** Reduced the frequency of issues causing file lockouts during the parsing of monitor configurations.
 - **Improved Profile Restore:** Enhanced the validation logic to ensure all monitor IDs match, reducing the occurrence of false positives.
-
 
 #### v1.1.6
 - **Logging Fix:** Fixed an issue where the log file wasn't created if a new stream started before the monitor was restored from the previous session.
 - **Code Update:** Updated the script to use the [SunshineScript Installer template](https://github.com/Nonary/SunshineScriptInstaller), simplifying the maintenance of the installation process for all projects.
-
-#### v1.1.5
-- **Black Screen Issue Fix:** Addressed an issue caused by a bug in the Windows Display API that could result in games streaming as a black screen or freezing after menu interactions.
-- **Code Cleanup:** Refactored the script to improve performance and removed unnecessary code.
-
-#### v1.1.4
-- **Monitor Restoration Fix:** Corrected a premature script exit that occurred before the monitor could be restored, resolving issue #31.
-
-#### v1.1.3
-- **Monitor Configuration Stability Fix:** Solved a problem where monitor configurations could incorrectly change under specific conditions, such as when a stream was suspended and then resumed without completing the monitor restoration process from a previous session. This issue stemmed from an unexpected behavior in Windows' display settings API, which applied changes even when a monitor swap failed. The fix prevents the script from attempting to restore the primary monitor during streaming sessions, avoiding changes in host resolution.
