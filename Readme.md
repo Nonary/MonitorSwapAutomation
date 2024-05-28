@@ -98,22 +98,30 @@ If you encounter issues with the script, you can try the following:
     - Sometimes the swap can take longer to do and the resolution swap is happening on your primary screen
     - Adjusting the start delay will give the swap more time to complete, thus making sure resolution is changed on the correct monitor.
 
-#### Only one screen is being restored, everything else works
-- You will have to do this workaround mentioned here: https://github.com/Nonary/MonitorSwapAutomation/issues/9 
-  - There is currently a bug in the MultiMonitor tool in some scenarios with people who have dual screens. I do not have the source code for that tool, so it is impossible for me to fix directly, a workaround has to be done until resolved by Nirsoft. Please report your issue to [nirsofer@yahoo.com](mailto:nirsofer@yahoo.com) so he can gather more users and data to ultimately resolve this issue.
+#### Only One Screen is Being Restored, Everything Else Works
+- You will have to follow the workaround mentioned here: [MonitorSwapAutomation Issue #9](https://github.com/Nonary/MonitorSwapAutomation/issues/9)
+  - There is currently a bug in the MultiMonitor tool affecting users with dual screens. I do not have the source code for that tool, so it is impossible for me to fix directly. A workaround is necessary until Nirsoft resolves this issue. Please report your issue to [nirsofer@yahoo.com](mailto:nirsofer@yahoo.com) so he can gather more users and data to ultimately resolve this issue.
 
-#### Resolution Change when resuming or starting new stream
-- Double check and make sure you have put the correct "dummyMonitorId" in the settings.json file, that way the script doesn't attempt to restore monitor profiles that are already active.
+#### Primary Monitor Wasn't Restored
+Check the logs to see if they claim the primary monitor was successfully restored. If it was, enable `enableStrictRestoration` in the `settings.json` file by setting it to `true`. If the logs do not show it restored, it probably was closed out before the script could finish (in the case of reboots). In such cases, you can't do much to resolve it other than ensuring you do not reboot before returning to your machine.
+
+#### Resolution Change When Resuming or Starting a New Stream
+- Double-check and ensure you have put the correct `dummyMonitorId` in the `settings.json` file. This way, the script doesn't attempt to restore monitor profiles that are already active.
 
 ### Change Log
+
+### v1.1.9
+- **Updated MultiMonitorTool:** Updated to v2.10.
+- **Primary Monitor Validation:** Added a new option to increase the strictness of validation on restoring the primary monitor. This should reduce false positives for some users but may cause problems for others, so this option is not enabled by default.
 
 ### v1.1.8
 - **Debug Logging:** Added debug write statements across the app to facilitate easier troubleshooting of future issues.
 - **Monitor Flicker Fix:** Resolved an issue causing the monitor to constantly flicker when applying the workaround mentioned in issue [#9](https://github.com/Nonary/MonitorSwapAutomation/issues/9).
 
-#### v1.1.7
+### v1.1.7
 - **File Lock Fixes:** Reduced the frequency of issues causing file lockouts during the parsing of monitor configurations.
 - **Improved Profile Restore:** Enhanced the validation logic to ensure all monitor IDs match, reducing the occurrence of false positives.
+
 
 #### v1.1.6
 - **Logging Fix:** Fixed an issue where the log file wasn't created if a new stream started before the monitor was restored from the previous session.
