@@ -238,18 +238,18 @@ function IsPrimaryMonitorActive() {
     }
 
     Write-Debug "Getting primary monitor IDs from primary.cfg"
-    [string[]]$primaryProfile = (Get-PrimaryMonitorIds -filePath "primary.cfg") -as [string[]] | Sort-Object
+    [string[]]$primaryProfile = if ($settings.enableStrictRestoration) { (Get-Content -Path "primary.cfg") -as [string[]] | Sort-Object } else { (Get-PrimaryMonitorIds -filePath "primary.cfg") -as [string[]] }
     Write-Debug "Primary monitor IDs: $primaryProfile"
 
     Write-Debug "Getting primary monitor IDs from current configuration file"
-    [string[]]$currentProfile = (Get-PrimaryMonitorIds -filePath $filePath) -as [string[]] | Sort-Object
+    [string[]]$currentProfile = if ($settings.enableStrictRestoration) { (Get-Content -Path $filePath) -as [string[]] | Sort-Object } else { (Get-PrimaryMonitorIds -filePath $filePath) -as [string[]] }
     Write-Debug "Current monitor IDs: $currentProfile"
 
 
 
     $comparisonResults = Compare-Object $primaryProfile $currentProfile
 
-    if($null -ne $comparisonResults){
+    if ($null -ne $comparisonResults) {
         Write-Debug "Primary monitor IDs do not match current configuration. Returning false."
         Write-Debug $comparisonResults
         return $false
