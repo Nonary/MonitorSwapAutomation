@@ -110,6 +110,9 @@ Check the logs to see if they claim the primary monitor was successfully restore
 
 ### Change Log
 
+### v1.2.0
+- **Hybrid GPU Script Support:** Implements changes required for the Hybrid GPU Fix (https://github.com/Nonary/DuplicateOutputFailFix). Allowing those with laptops to always force NVIDIA Encoding, etc.
+
 ### v1.1.9
 - **Updated MultiMonitorTool:** Updated to v2.10.
 - **Primary Monitor Validation:** Added a new option to increase the strictness of validation on restoring the primary monitor. This should reduce false positives for some users but may cause problems for others, so this option is not enabled by default.
