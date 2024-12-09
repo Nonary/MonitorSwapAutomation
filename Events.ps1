@@ -33,14 +33,14 @@ function OnStreamStart() {
     # and a stream is initiated again, the display switcher built into windows (Windows + P) may not update and remain stuck on the last used setting.
     # This can cause significant problems in some games, including frozen visuals and black screens.    
     Write-Debug "Loading dummy monitor configuration from dummy.cfg"
-    & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
+    & .\MonitorSwitcher.exe -load:Dummy.xml 
     Start-Sleep -Seconds 2
 
     for ($i = 0; $i -lt 6; $i++) {
         Write-Debug "Attempt $i to check if dummy monitor is active"
         if (-not (IsMonitorActive -monitorId $dummyMonitorId)) {
             Write-Debug "Dummy monitor is not active, reloading dummy configuration"
-            & .\MultiMonitorTool.exe /LoadConfig "dummy.cfg" 
+            & .\MonitorSwitcher.exe -load:Dummy.xml 
         }
         else {
             Write-Debug "Dummy monitor is active, exiting loop"
@@ -110,16 +110,16 @@ function IsMonitorActive($monitorId) {
     Write-Debug "Starting IsMonitorActive function for monitorId: $monitorId"
 
     # For some displays, the primary screen can't be set until it wakes up from sleep.
-    # This will continually poll the configuration to make sure the display has been set.
-    $filePath = "$configSaveLocation\current_monitor_config.cfg"
+    # Continually poll the configuration to ensure the display is fully updated.
+    $filePath = "$configSaveLocation\current_monitor_config.xml"
     Write-Debug "Saving current monitor configuration to $filePath"
-    & .\MultiMonitorTool.exe /SaveConfig $filePath
+    & .\MonitorSwitcher.exe -save:$filePath
     Start-Sleep -Seconds 3
 
     $currentTime = Get-Date
     Write-Debug "Current time: $currentTime"
 
-    # Get the file's last write time
+    # Check when the file was last updated
     $fileLastWriteTime = (Get-Item $filePath).LastWriteTime
     Write-Debug "File last write time: $fileLastWriteTime"
 
@@ -127,43 +127,53 @@ function IsMonitorActive($monitorId) {
     $timeDifference = ($currentTime - $fileLastWriteTime).TotalMinutes
     Write-Debug "Time difference in minutes: $timeDifference"
 
-    # Check if the file was saved in the last minute, if it has not been saved recently, then we could have a potential false positive.
+    # If the file isn't recent, it might be a stale configuration leading to a false positive
     if ($timeDifference -gt 1) {
         Write-Debug "File was not saved recently. Potential false positive."
         return $false        
     }
 
     Write-Debug "Reading monitor configuration from $filePath"
-    $monitorConfigLines = (Get-Content -Path $filePath | Select-String "MonitorID=.*|SerialNumber=.*|Width.*|Height.*|DisplayFrequency.*")
-    
-    Write-Debug "Iterating over monitor configuration lines"
-    for ($i = 0; $i -lt $monitorConfigLines.Count; $i++) {
-        $configMonitorId = ($monitorConfigLines[$i] -split "=") | Select-Object -Last 1
-        Write-Debug "Checking monitor ID: $configMonitorId"
+    [xml]$xml = Get-Content -Path $filePath
 
-        if ($configMonitorId -eq $monitorId) {
-            Write-Debug "Found matching monitor ID: $configMonitorId"
-            $width = ($monitorConfigLines[$i + 2] -split "=") | Select-Object -Last 1
-            $height = ($monitorConfigLines[$i + 3] -split "=") | Select-Object -Last 1
-            $refresh = ($monitorConfigLines[$i + 4] -split "=") | Select-Object -Last 1
+    # Find the path info node that matches the given monitorId
+    # The monitorId is found in the targetInfo.id element.
+    foreach ($path in $xml.displaySettings.pathInfoArray.DisplayConfigPathInfo) {
+        if ($path.targetInfo.id -eq $monitorId) {
+            Write-Debug "Found matching path for monitor ID: $monitorId"
+
+            # Extract refresh rate
+            $numerator   = [int]$path.targetInfo.refreshRate.numerator
+            $denominator = [int]$path.targetInfo.refreshRate.denominator
+            $refresh     = if ($denominator -ne 0) { $numerator / $denominator } else { 0 }
+
+            # Locate the source mode info to get width and height
+            $sourceModeIdx = [int]$path.sourceInfo.modeInfoIdx
+            $sourceModeInfo = $xml.displaySettings.modeInfoArray.modeInfo[$sourceModeIdx]
+
+            # Confirm that this modeInfo is a Source type
+            if ($sourceModeInfo.DisplayConfigModeInfoType -eq 'Source') {
+                $width  = [int]$sourceModeInfo.DisplayConfigSourceMode.width
+                $height = [int]$sourceModeInfo.DisplayConfigSourceMode.height
+            }
+            else {
+                Write-Debug "Source mode not found as expected. Returning false."
+                return $false
+            }
 
             Write-Debug "Monitor width: $width, height: $height, refresh rate: $refresh"
 
-            # Inactive displays will be zero on everything basically.
-            $result = ($height -ne 0 -and $width -ne 0 -and $refresh -ne 0)
-            Write-Debug "Monitor active status: $result"
-            return $result
-        }
-        else {
-            Write-Debug "Monitor ID $configMonitorId does not match $monitorId. Skipping next four lines."
-            # It's not necessary to check the next four lines because it's not the monitor we want.
-            $i += 4
+            # Inactive displays are expected to have zero width, height, or refresh.
+            $isActive = ($width -ne 0 -and $height -ne 0 -and $refresh -ne 0)
+            Write-Debug "Monitor active status: $isActive"
+            return $isActive
         }
     }
 
     Write-Debug "Monitor ID $monitorId not found in configuration"
     return $false
 }
+
 
 
 function SetPrimaryScreen() {
@@ -176,7 +186,7 @@ function SetPrimaryScreen() {
     }
 
     Write-Debug "Loading primary monitor configuration from primary.cfg"
-    & .\MultiMonitorTool.exe /LoadConfig "primary.cfg"
+    & .\MonitorSwitcher.exe -load:Primary.xml
 
     Write-Debug "Sleeping for 3 seconds to allow configuration to take effect"
     Start-Sleep -Seconds 3
@@ -187,21 +197,33 @@ function SetPrimaryScreen() {
 function Get-PrimaryMonitorIds($filePath) {
     Write-Debug "Starting Get-PrimaryMonitorIds function for filePath: $filePath"
 
-    $pattern = '(?<=MonitorID=)(?<id>.*)|(?<=DisplayFrequency=)(?<freq>\d+)'
+    # Load the XML from the file
+    [xml]$xml = Get-Content -Path $filePath
+
+    # Prepare the array to hold primary monitor IDs
     $primaryMonitorIds = @()
-    $foundMonitors = [regex]::Matches((Get-Content -Raw -Path $filePath), $pattern)
-    Write-Debug "Found monitor matches: $($foundMonitors.Count)"
 
-    for ($i = 0; $i -lt $foundMonitors.Count; $i += 2) {
-        $match = $foundMonitors[$i]
-        $monitorId = $match.Groups[0].Value
-        $refresh = $foundMonitors[$i + 1].Groups[0].Value
+    # Iterate through each DisplayConfigPathInfo node in the XML
+    foreach ($path in $xml.displaySettings.pathInfoArray.DisplayConfigPathInfo) {
+        # Extract the monitor ID from the targetInfo section
+        $monitorId = $path.targetInfo.id
 
-        Write-Debug "Monitor ID: $monitorId, Refresh rate: $refresh"
+        # Extract the refresh rate numerator and denominator
+        $numerator = [int]$path.targetInfo.refreshRate.numerator
+        $denominator = [int]$path.targetInfo.refreshRate.denominator
 
-        if ($refresh -ne 0) {
+        # Calculate the refresh rate
+        $refreshRate = 0
+        if ($denominator -ne 0) {
+            $refreshRate = $numerator / $denominator
+        }
+
+        Write-Debug "Monitor ID: $monitorId, Refresh rate: $refreshRate"
+
+        # If refresh rate is not zero, consider it an active (primary) monitor
+        if ($refreshRate -ne 0) {
             Write-Debug "Adding active monitor ID: $monitorId"
-            $primaryMonitorIds += $monitorId.Trim()
+            $primaryMonitorIds += $monitorId
         }
         else {
             Write-Debug "Skipping inactive monitor ID: $monitorId"
@@ -213,11 +235,12 @@ function Get-PrimaryMonitorIds($filePath) {
 }
 
 
+
 function IsPrimaryMonitorActive() {
-    $filePath = "$configSaveLocation\current_monitor_config.cfg"
+    $filePath = "$configSaveLocation\current_monitor_config.xml"
 
     Write-Debug "Saving current monitor configuration to $filePath"
-    & .\MultiMonitorTool.exe /SaveConfig $filePath
+    & .\MonitorSwitcher.exe -save:$filePath
     Start-Sleep -Seconds 3
 
     $currentTime = Get-Date
@@ -238,7 +261,7 @@ function IsPrimaryMonitorActive() {
     }
 
     Write-Debug "Getting primary monitor IDs from primary.cfg"
-    [string[]]$primaryProfile = if ($settings.enableStrictRestoration) { (Get-Content -Path "primary.cfg") -as [string[]] | Sort-Object } else { (Get-PrimaryMonitorIds -filePath "primary.cfg") -as [string[]] }
+    [string[]]$primaryProfile = if ($settings.enableStrictRestoration) { (Get-Content -Path "primary.cfg") -as [string[]] | Sort-Object } else { (Get-PrimaryMonitorIds -filePath "Primary.xml") -as [string[]] }
     Write-Debug "Primary monitor IDs: $primaryProfile"
 
     Write-Debug "Getting primary monitor IDs from current configuration file"

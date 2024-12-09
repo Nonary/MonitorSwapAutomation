@@ -1,9 +1,9 @@
 {
-    "debug": false,
+    "debug": true,
     "startDelay": 4,
     "gracePeriod": 900,
     "configSaveLocation": "%TEMP%",
-    "dummyMonitorId": "MONITOR\\XMD009A\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\0005",
+    "dummyMonitorId": 256,
     "enableStrictRestoration": false, // If true, the script will adjust how it verifies the primary monitor is active, reducing false positives, but may cause issues on some setups.
     "installationOrderPreferences": {
         "enabled": true,
