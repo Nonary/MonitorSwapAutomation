@@ -93,6 +93,10 @@ try {
                 Wait-ForStreamEndJobToComplete
                 break;
             }
+            elseif($eventName -eq "GPUAdapterChange"){
+                Write-Host "Script is being intentionally terminated without restoring the monitor profile because you have the Hybrid GPU Fix Script Installed, this is not considered an error. It needs to do this so that the GPU preference gets set properly once restarting sunshine."
+                break;
+            }
             else {
                 Wait-ForStreamEndJobToComplete
                 break;

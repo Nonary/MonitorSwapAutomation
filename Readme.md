@@ -1,127 +1,127 @@
 # README
 
-This script automates the process of switching your primary monitor with a dummy monitor using MultiMonitorTool. 
-This is useful for users of Sunshine (a screen sharing software) who experience issues with sharing their primary monitor.
+This tool helps automatically switch your main display between a “real” monitor and a “dummy” monitor when streaming with **Sunshine**.
 
-## Caveats:
- - If using Windows 11, you'll need to set the default terminal to Windows Console Host as there is currently a bug in Windows Terminal that prevents hidden consoles from working properly.
-    * That can be changed at Settings > System > For Developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
-    * On older versions of Windows 11 it can be found at: Settings > Privacy & security > Security > For developers > Terminal [Let Windows decide] >> (change to) >> Terminal [Windows Console Host]
- - The script will stop working if you move the folder, simply reinstall it to resolve that issue.
- - Due to Windows API restrictions, this script does not work on cold reboots (hard crashes or shutdowns of your computer).
-    * If you're cold booting, simply sign into the computer using the "Desktop" app on Moonlight, then end the stream, then start it again. 
- - In the Sunshine WEB UI, make sure you leave the Output Name blank under the Audio/Video tab, otherwise it could cause breaking behavior with this script.
+**Key Idea:**  
+- When you’re not streaming, your computer uses your normal monitor setup.
+- When you start streaming (for example, using a mobile device to control your PC remotely with Moonlight), the script will switch to a dummy monitor. 
 
 
-## REQUIREMENTS
+## Important Notes
 
-### For GFE users
+1. **Windows 11 Users:**  
+   Due to a bug, you must set the default terminal to **Windows Console Host**.  
+   - On newer Windows 11 versions:  
+     1. Open **Settings**  
+     2. Go to **System > For Developers**  
+     3. Find the **Terminal** setting that says "**Let Windows decide**"  
+     4. Change it to **Terminal [Windows Console Host]**
+   
+   - On older Windows 11 versions:  
+     1. Open **Settings**  
+     2. Go to **Privacy & Security > Security > For Developers**  
+     3. Find the **Terminal** option and change it from "**Let Windows decide**" to **Terminal [Windows Console Host]**.
+   
+   This is required for the script to work properly.
 
-- This script no longer supports GFE, but you are able to retrieve a legacy version of this script that does support it: https://github.com/Nonary/MonitorSwapAutomation/releases/tag/legacy
+2. **Do Not Move the Script’s Folder:**  
+   If you move the folder after installing, the script may stop working. If that happens, just reinstall it.
 
-### For Sunshine users
-- Version 0.19.1 or higher
-- Host must be Windows
+3. **Cold Reboots (Hard Crash or Full Shutdown) Issue:**  
+   If you start your computer from a completely off state (a “cold boot”), the script cannot automatically switch the monitor right away due to Windows limitations.  
+   **Workaround:**  
+   - After a cold boot, sign into your PC using the “Desktop” app on Moonlight.  
+   - Then end the stream and start it again.  
+   After doing this once, the script will work normally again on subsequent uses.
 
-## INSTRUCTIONS
+4. **Sunshine WEB UI Setting:**  
+   In the Sunshine Web UI, **do not fill in the “Output Name”** under the Audio/Video tab. Leave it blank.  
+   If you set an output name, it can break how this script works.
 
-1. Open up MultiMonitorTool and click on `File -> Save Monitors Configuration` and save it in the current folder this script is located in with the name of `primary.cfg`.
-2. Repeat the same steps of step 1, except save it with the name of `dummy.cfg`.
-3. Open up the `dummy.cfg` file and set every parameter related to your primary monitor's position, refresh rate, etc. to `0`. For example:
+---
 
-        Name=\\.\DISPLAY1
-        MonitorID=MONITOR\GSMC0C8\{4d36e96e-e325-11ce-bfc1-08002be10318}\0009
-        SerialNumber=LGTV
-        BitsPerPixel=0
-        Width=0
-        Height=0
-        DisplayFlags=0
-        DisplayFrequency=0
-        DisplayOrientation=0
-        PositionX=0
-        
-        Name=\\.\DISPLAY11
-        MonitorID=MONITOR\XMD29831\{4d36e96e-e325-11ce-bfc1-08002be10318}\0007
-        SerialNumber=DUMMY
-        BitsPerPixel=32
-        Width=3840
-        Height=2160
-        DisplayFlags=0
-        DisplayFrequency=120
-        DisplayOrientation=0
-        PositionX=0
+## Requirements
 
-    In the example above, every numerical value has been set to 0, which lets the script know that the display should be turned off.
-    Also take note in the example, that my dummy display should have values configured to let it know that it should be turned on.
+- **For GFE (GeForce Experience) Users:**  
+  This script no longer supports GFE. If you need the old version that works with GFE, get it here:  
+  [Legacy Version Download](https://github.com/Nonary/MonitorSwapAutomation/releases/tag/legacy)
 
-4. Verify that the `dummy.cfg` file has only **one** display that contains values for the `BitsPerPixel`, `Width`, `Height`, and so on. 
-4a. For the `primary.cfg file`, it does not matter if there are other displays enabled, but you would want to make sure your dummy is "zeroed out" so you don't end up with an invisible monitor.
-5. Basically, primary will "zero out" the dummy plug, and dummy will "zero out" the main display. This will automatically transfer games and windows back to the primary monitor if setup this way.
-6. In the `dummy.cfg` file, locate your dummy `MonitorId` and copy and paste it to the `dummyMonitorId` key in the settings.json file. Make sure to escape the backslashes.
-7. Validate you have escaped the backslashes, below is an example of a valid settings.json file.
-    ```
-    {
-    "startDelay": 2,
-    "gracePeriod": 60,
-    "configSaveLocation": "%TEMP%",
-    "dummyMonitorId": "MONITOR\\XMD009A\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\0010"
-    }
-    ```
+- **For Sunshine Users:**  
+  - You need Sunshine version **0.19.1 or higher**  
+  - Host computer must be running Windows.
 
-8. Install the script by double clicking the Install.bat file, you may get a smart-screen warning... this is normal.
-9. You will be prompted for administrator rights, as modifying Sunshine configuration will require admin rights in the coming future.
-10. If there are no error messages presented on the screen, the script successfully installed and you can close the terminal.
+---
 
-The paths referenced above will vary on your machine.
-## TROUBLESHOOTING
+## Step-by-Step Instructions
 
-If you encounter issues with the script, you can try the following:
+1. **IMPORTANT: Erase Display Output Settings on Sunshine WEB UI** 
+   In the Sunshine Web UI, **do not fill in the “Output Name”** under the Audio/Video tab. Leave it blank.  
+   If you set an output name, it can break how this script works.
 
-#### Monitor is not swapping before stream or afterwards
-- Check that your dummy monitor `MonitorId` matches the value in the `dummyMonitorId` variable in the `settings.json` file.
-- Check that you have escaped the backslashes for dummyMonitorId in the `settings.json` file.
-  Valid: MONITOR\\\\GSMC0C8\\\\{4d36e96e-e325-11ce-bfc1-08002be10318}\\\\0009
+2. **Install the Script:**  
+   Follow the instructions provided with the script or the installer to get it set up on your computer.
 
-  Invalid: MONITOR\GSMC0C8\{4d36e96e-e325-11ce-bfc1-08002be10318}\0009
+3. **Set Your Desired Baseline Monitor Setup:**  
+   Before saving any profiles, make sure your monitors are arranged exactly how you want them when you’re **not streaming**. This will be your “normal” setup.
+
+4. **Save Your “Primary Monitor” Profile:**  
+   - Open a **Terminal/Command Prompt window** in the folder where you saved the script.  
+   - Type:  
+     ```  
+     .\MonitorSwitcher.exe -save:Primary.xml
+     ```  
+   This command saves a snapshot of your current monitor setup as “Primary.xml.”
+
+5. **Prepare to Save Your “Dummy Monitor” Profile:**  
+   Now you need to start a Moonlight stream from another device (like your phone or tablet) so you can see your PC’s screen even if the actual monitor goes black.
+
+6. **Switch to the Dummy Monitor Setup (While Streaming):**  
+   - With the stream running and using your other device to view your computer:  
+     1. On your Windows PC, go to **Settings > System > Display**.  
+     2. Change the setting to show only on the dummy display. (This might make your physical monitor go dark, but you’ll still see your PC screen on your remote device.)  
+   
+   Now your PC is using the dummy monitor as the “main display.”
+
+7. **Save Your “Dummy Monitor” Profile:**  
+   - While still in the folder on your PC (visible via your remote device), open Terminal again and type:  
+     ```  
+     .\MonitorSwitcher.exe -save:Dummy.xml
+     ```  
+
+8. **Finish Up:**  
+   - End the stream on your mobile or remote device.  
+   - Your display should now return to normal on your physical monitor.
+   
+   From now on, every time you start a stream, the script will automatically switch to the dummy display, and when you end the stream, it will switch back to your normal setup.
+
+
+---
+
+## Troubleshooting
+
+**Problem: ResolutionAutomation Script Doesn’t Change Resolution or Works Intermittently**  
+- First, ensure you installed **MonitorSwapper first**, and then the [ResolutionAutomation script](https://github.com/Nonary/ResolutionAutomation) after.  
+  If you did it the other way around, uninstall both, then install MonitorSwapper first and ResolutionAutomation second.
   
-- Check that you have set every parameter related to the primary monitor's resolution in the `dummy.cfg` file to `0`.
-- Check that you have set every parameter related to the dummy monitor's resolution in the `primary.cfg` file to `0`.
-- Check that you have at least one monitor not "zeroed out" in both the primary.cfg and dummy.cfg files.
-- Ensure that you have followed the requirements for Sunshine users as listed above.
-- Increase the startDelay in the settings file if you're experiencing the script only works intermitently.
-- If you are still experiencing issues, try uninstalling and installing it again.
+- If you still have issues, try increasing the start delay in the **settings.json** file (found in the script’s folder) to 3 or 4 seconds. This gives the monitor swap process more time to complete before the resolution attempts to change.
 
-#### ResolutionAutomation script isn't changing my resolution after connecting and or is intermittently working
-  - First, ensure that MonitorSwapper is installed *first*, then install the [ResolutionAutomation](https://github.com/Nonary/ResolutionAutomation) script.
-    - If you installed them out of order, uninstall both, then install MonitorSwapper, then ResolutionAutomation.
-  - Adjust the start delay in the settings.json file to 3 or 4 seconds and that should resolve that issue.
-    - Sometimes the swap can take longer to do and the resolution swap is happening on your primary screen
-    - Adjusting the start delay will give the swap more time to complete, thus making sure resolution is changed on the correct monitor.
+---
 
-#### Only One Screen is Being Restored, Everything Else Works
-- You will have to follow the workaround mentioned here: [MonitorSwapAutomation Issue #9](https://github.com/Nonary/MonitorSwapAutomation/issues/9)
-  - There is currently a bug in the MultiMonitor tool affecting users with dual screens. I do not have the source code for that tool, so it is impossible for me to fix directly. A workaround is necessary until Nirsoft resolves this issue. Please report your issue to [nirsofer@yahoo.com](mailto:nirsofer@yahoo.com) so he can gather more users and data to ultimately resolve this issue.
+## Change Log 
 
-#### Primary Monitor Wasn't Restored
-Check the logs to see if they claim the primary monitor was successfully restored. If it was, enable `enableStrictRestoration` in the `settings.json` file by setting it to `true`. If the logs do not show it restored, it probably was closed out before the script could finish (in the case of reboots). In such cases, you can't do much to resolve it other than ensuring you do not reboot before returning to your machine.
+**v2.0.0**  
+- Changed the script’s backend from Nirsoft MultiMonitorTool to MonitorSwitcher to address compatibility issues with Windows 24H2 and improve reliability.
 
-#### Resolution Change When Resuming or Starting a New Stream
-- Double-check and ensure you have put the correct `dummyMonitorId` in the `settings.json` file. This way, the script doesn't attempt to restore monitor profiles that are already active.
+**v1.2.0**  
+- Added support changes required for Hybrid GPU fixes, helping laptop users force NVIDIA encoding.
 
-### Change Log
+**v1.1.9**  
+- Updated MultiMonitorTool to v2.10 and added stricter validation for restoring primary monitors.
 
-### v1.1.9
-- **Updated MultiMonitorTool:** Updated to v2.10.
-- **Primary Monitor Validation:** Added a new option to increase the strictness of validation on restoring the primary monitor. This should reduce false positives for some users but may cause problems for others, so this option is not enabled by default.
+**v1.1.8**  
+- Added debug logging to help troubleshoot issues.
+- Fixed a monitor flicker issue related to a known workaround.
 
-#### v1.1.8
-- **Debug Logging:** Added debug write statements across the app to facilitate easier troubleshooting of future issues.
-- **Monitor Flicker Fix:** Resolved an issue causing the monitor to constantly flicker when applying the workaround mentioned in issue [#9](https://github.com/Nonary/MonitorSwapAutomation/issues/9).
-
-#### v1.1.7
-- **File Lock Fixes:** Reduced the frequency of issues causing file lockouts during the parsing of monitor configurations.
-- **Improved Profile Restore:** Enhanced the validation logic to ensure all monitor IDs match, reducing the occurrence of false positives.
-
-#### v1.1.6
-- **Logging Fix:** Fixed an issue where the log file wasn't created if a new stream started before the monitor was restored from the previous session.
-- **Code Update:** Updated the script to use the [SunshineScript Installer template](https://github.com/Nonary/SunshineScriptInstaller), simplifying the maintenance of the installation process for all projects.
+**v1.1.7 & v1.1.6**  
+- Various fixes to improve file handling, profile restoration, and logging.
+- Integrated updates from the SunshineScript Installer template.
