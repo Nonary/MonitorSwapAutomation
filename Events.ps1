@@ -38,6 +38,7 @@ function OnStreamStart() {
 
     for ($i = 0; $i -lt 6; $i++) {
         Write-Debug "Attempt $i to check if dummy monitor is active"
+        $dummyMonitorId = Get-MonitorIdFromXML -filePath ".\Dummy.xml"
         if (-not (IsMonitorActive -monitorId $dummyMonitorId)) {
             Write-Debug "Dummy monitor is not active, reloading dummy configuration"
             & .\MonitorSwitcher.exe -load:Dummy.xml 
@@ -114,7 +115,7 @@ function IsMonitorActive($monitorId) {
     $filePath = "$configSaveLocation\current_monitor_config.xml"
     Write-Debug "Saving current monitor configuration to $filePath"
     & .\MonitorSwitcher.exe -save:$filePath
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 1
 
     $currentTime = Get-Date
     Write-Debug "Current time: $currentTime"
@@ -194,8 +195,8 @@ function SetPrimaryScreen() {
     Write-Debug "SetPrimaryScreen function completed"
 }
 
-function Get-PrimaryMonitorIds($filePath) {
-    Write-Debug "Starting Get-PrimaryMonitorIds function for filePath: $filePath"
+function Get-MonitorIdFromXML($filePath) {
+    Write-Debug "Starting Get-MonitorIdFromXML function for filePath: $filePath"
 
     # Load the XML from the file
     [xml]$xml = Get-Content -Path $filePath
@@ -261,11 +262,11 @@ function IsPrimaryMonitorActive() {
     }
 
     Write-Debug "Getting primary monitor IDs from primary.cfg"
-    [string[]]$primaryProfile = if ($settings.enableStrictRestoration) { (Get-Content -Path "primary.cfg") -as [string[]] | Sort-Object } else { (Get-PrimaryMonitorIds -filePath "Primary.xml") -as [string[]] }
+    [string[]]$primaryProfile = Get-MonitorIdFromXML -filePath "Primary.xml" -as [string[]]
     Write-Debug "Primary monitor IDs: $primaryProfile"
 
     Write-Debug "Getting primary monitor IDs from current configuration file"
-    [string[]]$currentProfile = if ($settings.enableStrictRestoration) { (Get-Content -Path $filePath) -as [string[]] | Sort-Object } else { (Get-PrimaryMonitorIds -filePath $filePath) -as [string[]] }
+    [string[]]$currentProfile = Get-MonitorIdFromXML -filePath $filePath -as [string[]] 
     Write-Debug "Current monitor IDs: $currentProfile"
 
 

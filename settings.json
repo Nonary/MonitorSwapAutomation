@@ -1,10 +1,8 @@
 {
-    "debug": true,
+    "debug": false,
     "startDelay": 4,
     "gracePeriod": 900,
     "configSaveLocation": "%TEMP%",
-    "dummyMonitorId": 256,
-    "enableStrictRestoration": false, // If true, the script will adjust how it verifies the primary monitor is active, reducing false positives, but may cause issues on some setups.
     "installationOrderPreferences": {
         "enabled": true,
         // Set the order which the scripts are installed in, if the scripts are currently out of order, they will be reinstalled in the order specified here.
