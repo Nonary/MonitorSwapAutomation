@@ -109,6 +109,9 @@ This tool helps automatically switch your main display between a “real” moni
 
 ## Change Log 
 
+**v2.0.1**
+- Fixed a bug that prevented the primary monitor from being restored when returning back to the computer.
+
 **v2.0.0**  
 - Changed the script’s backend from Nirsoft MultiMonitorTool to MonitorSwitcher to address compatibility issues with Windows 24H2 and improve reliability.
 
