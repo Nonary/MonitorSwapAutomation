@@ -2,7 +2,7 @@ param(
     [string]$scriptName
 )
 
-$whiteListedEntries = @("Packager.ps1", "Releases", "*.txt", ".gitignore", "logs", ".vscode", "*.cfg", "*.Tests.ps1")
+$whiteListedEntries = @("Packager.ps1", "Releases", "*.txt", ".gitignore", "logs", ".vscode", "*.cfg", "*.Tests.ps1", "dummy_files", "iddsampledriver", "Primary.xml", "Dummy.xml")
 $releaseBasePath = "Releases"
 $releasePath = Join-Path -Path $releaseBasePath -ChildPath $scriptName
 $assetsPath = Join-Path -Path $releaseBasePath -ChildPath "assets"

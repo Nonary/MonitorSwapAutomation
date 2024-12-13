@@ -16,6 +16,8 @@ if (-not $script:arguments) {
     $script:arguments = @{}
 }
 
+$script:attempts = 0
+
 # Load settings from a JSON file located in the same directory as the script
 $settings = Get-Settings
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
@@ -32,7 +34,7 @@ function OnStreamStart() {
     # Always try to restore it at least once, due to a bug in Windows... if a profile restoration fails (especially when switching back to the primary screen),
     # and a stream is initiated again, the display switcher built into windows (Windows + P) may not update and remain stuck on the last used setting.
     # This can cause significant problems in some games, including frozen visuals and black screens.    
-    Write-Debug "Loading dummy monitor configuration from dummy.cfg"
+    Write-Debug "Loading dummy monitor configuration from Dummy.xml"
     & .\MonitorSwitcher.exe -load:Dummy.xml 
     Start-Sleep -Seconds 2
 
@@ -77,24 +79,24 @@ function OnStreamEnd($kwargs) {
         # Check again if the primary monitor is not active after the first attempt to set it.
         Write-Debug "Re-checking if the primary monitor is active"
         if (-not (IsPrimaryMonitorActive)) {
-            Write-Debug "Primary monitor is still not active after the first attempt"
-            if (($script:attempt++ -eq 1) -or ($script:attempt % 120 -eq 0)) {
+            Write-Debug "Primary monitor failed to be restored, this is most likely because the display is currently not available."
+            if (($script:attempts++ -eq 1) -or ($script:attempts % 120 -eq 0)) {
                 # Output a message to the host indicating difficulty in restoring the display.
                 # This message is shown once initially, and then once every 10 minutes.
                 Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be suppressed to only show up once every 10 minutes)"
-                Write-Debug "Output message to host about difficulty in restoring display"
             }
 
             # Return false indicating the primary monitor is still not active.
             # If we reached here, that indicates the first two attempts had failed.
-            Write-Debug "Returning false as primary monitor is still not active"
+            Write-Debug "Returning false as primary monitor is still not active after two attempts"
             return $false
         }
-
-        # Primary monitor is active, return true.
-        Write-Host "Primary monitor(s) have been successfully restored!"
-        Write-Debug "Primary monitor is active, returning true"
-        return $true
+        else {
+            # Primary monitor is active, return true.
+            Write-Host "Primary monitor(s) have been successfully restored!"
+            Write-Debug "Primary monitor is active, returning true"
+            return $true
+        }
     }
     catch {
         Write-Debug "Caught an exception, expected in cases like when the user has a TV as a primary display"
@@ -144,9 +146,9 @@ function IsMonitorActive($monitorId) {
             Write-Debug "Found matching path for monitor ID: $monitorId"
 
             # Extract refresh rate
-            $numerator   = [int]$path.targetInfo.refreshRate.numerator
+            $numerator = [int]$path.targetInfo.refreshRate.numerator
             $denominator = [int]$path.targetInfo.refreshRate.denominator
-            $refresh     = if ($denominator -ne 0) { $numerator / $denominator } else { 0 }
+            $refresh = if ($denominator -ne 0) { $numerator / $denominator } else { 0 }
 
             # Locate the source mode info to get width and height
             $sourceModeIdx = [int]$path.sourceInfo.modeInfoIdx
@@ -154,7 +156,7 @@ function IsMonitorActive($monitorId) {
 
             # Confirm that this modeInfo is a Source type
             if ($sourceModeInfo.DisplayConfigModeInfoType -eq 'Source') {
-                $width  = [int]$sourceModeInfo.DisplayConfigSourceMode.width
+                $width = [int]$sourceModeInfo.DisplayConfigSourceMode.width
                 $height = [int]$sourceModeInfo.DisplayConfigSourceMode.height
             }
             else {
@@ -182,11 +184,14 @@ function SetPrimaryScreen() {
 
     Write-Debug "Checking if currently streaming"
     if (IsCurrentlyStreaming) {
-        Write-Debug "Currently streaming, exiting function"
+        Write-Debug "Currently streaming, exiting function as this would cause performance issues to users who are currently streaming."
         return
     }
+    else {
+        Write-Debug "Verified user is currently not streaming."
+    }
 
-    Write-Debug "Loading primary monitor configuration from primary.cfg"
+    Write-Debug "Loading primary monitor configuration from Primary.xml"
     & .\MonitorSwitcher.exe -load:Primary.xml
 
     Write-Debug "Sleeping for 3 seconds to allow configuration to take effect"
@@ -261,7 +266,6 @@ function IsPrimaryMonitorActive() {
         return $false        
     }
 
-    Write-Debug "Getting primary monitor IDs from primary.cfg"
     [string[]]$primaryProfile = Get-MonitorIdFromXML -filePath "Primary.xml" -as [string[]]
     Write-Debug "Primary monitor IDs: $primaryProfile"
 

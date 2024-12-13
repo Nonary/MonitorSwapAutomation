@@ -49,50 +49,12 @@ function OnStreamEndAsJob() {
                 break;
             }
 
-            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
-            if ((OnStreamEnd $arguments)) {
-                Write-Debug "OnStreamEnd returned true. Exiting loop."
-                break;
-            }
-
-            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
-            if ((OnStreamEnd $arguments)) {
-                Write-Debug "OnStreamEnd returned true. Exiting loop."
-                break;
-            }
-
-            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
-            if ((OnStreamEnd $arguments)) {
-                Write-Debug "OnStreamEnd returned true. Exiting loop."
-                break;
-            }
-
-            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
-            if ((OnStreamEnd $arguments)) {
-                Write-Debug "OnStreamEnd returned true. Exiting loop."
-                break;
-            }
-
-            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
-            if ((OnStreamEnd $arguments)) {
-                Write-Debug "OnStreamEnd returned true. Exiting loop."
-                break;
-            }
-
-            Write-Debug "Invoking OnStreamEnd with arguments: $arguments"
-            if ((OnStreamEnd $arguments)) {
-                Write-Debug "OnStreamEnd returned true. Exiting loop."
-                break;
-            }
         
             if ((IsCurrentlyStreaming)) {
                 Write-Host "Streaming is active. To prevent potential conflicts, this script will now terminate prematurely."
             }
         
-            if ((OnStreamEnd $arguments)) {
-                break;
-            }
-        
+
             while (($tries -lt $maxTries) -and ($job.State -ne "Completed")) {
                 Start-Sleep -Milliseconds 200
                 $tries++
