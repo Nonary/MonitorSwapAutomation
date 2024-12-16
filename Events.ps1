@@ -67,35 +67,29 @@ function OnStreamStart() {
 function OnStreamEnd($kwargs) {
     Write-Debug "Starting OnStreamEnd function"
 
+
     try {
         # Check if the primary monitor is not active
-        Write-Debug "Checking if the primary monitor is active"
-        if (-not (IsPrimaryMonitorActive)) {
-            Write-Debug "Primary monitor is not active, attempting to set primary screen"
-            # Attempt to set the primary screen if it is not already set.
-            SetPrimaryScreen
-        }
+        Write-Debug "Now attempting to restore the primary monitor"
+        SetPrimaryScreen
 
-        # Check again if the primary monitor is not active after the first attempt to set it.
-        Write-Debug "Re-checking if the primary monitor is active"
-        if (-not (IsPrimaryMonitorActive)) {
-            Write-Debug "Primary monitor failed to be restored, this is most likely because the display is currently not available."
-            if (($script:attempts++ -eq 1) -or ($script:attempts % 120 -eq 0)) {
-                # Output a message to the host indicating difficulty in restoring the display.
-                # This message is shown once initially, and then once every 10 minutes.
-                Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be suppressed to only show up once every 10 minutes)"
-            }
-
-            # Return false indicating the primary monitor is still not active.
-            # If we reached here, that indicates the first two attempts had failed.
-            Write-Debug "Returning false as primary monitor is still not active after two attempts"
-            return $false
-        }
-        else {
+        if ((IsPrimaryMonitorActive)) {
             # Primary monitor is active, return true.
             Write-Host "Primary monitor(s) have been successfully restored!"
             Write-Debug "Primary monitor is active, returning true"
             return $true
+           
+        }
+        else {
+            Write-Debug "Primary monitor failed to be restored, this is most likely because the display is currently not available."
+            if (($script:attempts++ -eq 1) -or ($script:attempts % 120 -eq 0)) {
+                # Output a message to the host indicating difficulty in restoring the display.
+                # This message is shown once initially, and then once every 10 minutes.
+                Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be suppressed to only show up once every 10-15 minutes)"
+            }
+
+            # Return false indicating the primary monitor is still not active.
+            return $false
         }
     }
     catch {

@@ -113,6 +113,9 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 ## Change Log
 
+**v2.0.2**
+- More bug fixes that prevented primary monitor from restoring after a stream was ended.
+
 **v2.0.1**  
 - Fixed a bug that prevented the primary monitor from restoring after ending a stream.
 
@@ -129,9 +132,5 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 **v1.1.8**  
 - Added debug logging.
 - Fixed monitor flicker issue related to known workarounds.
-
-**v1.1.7 & v1.1.6**  
-- Various fixes for file handling, profile restoration, and logging.
-- Integrated updates from the SunshineScript Installer template.
 
 ---
