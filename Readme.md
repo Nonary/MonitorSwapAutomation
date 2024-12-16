@@ -59,49 +59,56 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 ---
 
-## Step-by-Step Setup
+```markdown
+## Step-by-Step Setup for Monitor Configuration
 
 1. **Sunshine Output Settings:**  
-   In the Sunshine Web UI, ensure the “Output Name” field is blank under Audio/Video settings.
+   - In the Sunshine Web UI, ensure the “Output Name” field is blank under **Audio/Video settings**.
 
 2. **Install the Script:**  
-   Follow the provided installer instructions to set up the script on your computer.
+   - Follow the provided installer instructions to set up the script on your computer.
 
 3. **Set Your Baseline (Primary) Monitor Setup:**  
-   Arrange your monitors exactly how you want them for normal operation (i.e., when you’re not streaming).
+   - Arrange your monitors as desired for normal operation (e.g., when you’re not streaming).
 
 4. **Save Your “Primary” Monitor Profile:**  
    - Open **Terminal/Command Prompt** in the script’s folder.
-   - Run:
-     ```  
+   - Run the following command:
+     ```
      .\MonitorSwitcher.exe -save:Primary.xml
      ```
-   This creates a snapshot of your current (normal) monitor configuration as “Primary.xml.”
+   - This creates a snapshot of your current monitor configuration as `Primary.xml`.
 
-5. **Prepare to Save Your “Dummy” Monitor Profile:**
-   Start a Moonlight stream from another device (phone, tablet, etc.) so you can view and control your PC remotely. This is important because when you switch to the dummy monitor, your physical monitor will go dark.
+5. **Prepare to Save Your “Dummy” Monitor Profile:**  
+   - Start a Moonlight stream from another device (e.g., phone, tablet) so you can view and control your PC remotely.  
+   - This is essential because your physical monitor will go dark when switching to the dummy monitor.
 
 6. **Configure the Dummy Monitor Setup (While Streaming):**  
    - With the remote stream running:
      1. On your Windows PC, open **Settings > System > Display**.
-     2. Click **Identify** to determine the monitor number you want to use for streaming. For a dummy plug, identify which monitor number is not physically visible.
-     3. In the display settings, change the dropdown to "show only on {NUMBER}" where {NUMBER} is the monitor you plan to use as the dummy/streaming display.
-     4. Once you confirm this change, your local display goes black. Continue using your remote device to control the PC.
+     2. Click **Identify** to determine the monitor number for streaming. For a dummy plug, identify the monitor number that is not physically visible.
+     3. If multiple monitors are active, disconnect secondary monitors:
+        - Select the monitor to disconnect (e.g., monitor #2).
+        - Use the dropdown menu to choose **Disconnect this display**.
+        - Repeat until only the primary monitor is active.
+        - This is required in order to see the **Show only on {NUMBER}** options.
+     4. Ensure you are remotely viewing the PC on another device before proceeding, as you will not be able to see the screen physically on this next step.
+     5. In **Display settings**, set the dropdown to **Show only on {NUMBER}**, where `{NUMBER}` is the dummy/streaming monitor.
+     6. While at your computer confirm the display settings by clicking "Keep Changes", use your other device that is currently streaming for guidance on moving the mouse.
 
-7. **Save Your “Dummy” Monitor Profile:**
-   - Back in your Terminal window (still in the script’s folder), run:
-     ```  
+7. **Save Your “Dummy” Monitor Profile:**  
+   - In the Terminal (still in the script’s folder), run the following command:
+     ```
      .\MonitorSwitcher.exe -save:Dummy.xml
      ```
-   This saves your dummy/streaming monitor setup as “Dummy.xml.”
+   - This saves your dummy/streaming monitor configuration as `Dummy.xml`.
 
-8. **Completing the Setup:**
-   - End the Moonlight stream session.
-   - Your display should return to normal on your physical monitor.
-   
-   Now, whenever you start a stream, the script automatically switches to the dummy display configuration. When you stop streaming, it will restore your original setup.
+8. **Completing the Setup:**  
+   - End the Moonlight stream session.  
+   - Your display should revert to the original configuration on your physical monitor.
 
----
+   Now, the script will automatically switch to the dummy display configuration when streaming and restore your original setup when you stop streaming.
+```
 
 ## Troubleshooting
 
