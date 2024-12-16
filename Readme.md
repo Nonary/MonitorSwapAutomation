@@ -59,7 +59,6 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 ---
 
-```markdown
 ## Step-by-Step Setup for Monitor Configuration
 
 1. **Sunshine Output Settings:**  
@@ -108,7 +107,7 @@ This tool automatically switches your main display to a dummy plug (or any virtu
    - Your display should revert to the original configuration on your physical monitor.
 
    Now, the script will automatically switch to the dummy display configuration when streaming and restore your original setup when you stop streaming.
-```
+
 
 ## Troubleshooting
 
