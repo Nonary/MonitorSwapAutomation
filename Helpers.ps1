@@ -120,12 +120,12 @@ function Create-Pipe($pipeName) {
         $pipe = New-Object System.IO.Pipes.NamedPipeServerStream($pipeName, [System.IO.Pipes.PipeDirection]::In, 10, [System.IO.Pipes.PipeTransmissionMode]::Byte, [System.IO.Pipes.PipeOptions]::Asynchronous)
 
         $streamReader = New-Object System.IO.StreamReader($pipe)
-        Write-Output "Waiting for named pipe to recieve kill command"
+        Write-Host "Waiting for named pipe to recieve kill command"
         $pipe.WaitForConnection()
 
         $message = $streamReader.ReadLine()
         if ($message) {
-            Write-Output "Terminating pipe..."
+            Write-Host "Terminating pipe..."
             $pipe.Dispose()
             $streamReader.Dispose()
             New-Event -SourceIdentifier $scriptName -MessageData $message

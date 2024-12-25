@@ -119,6 +119,9 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 ## Change Log
 
+**v2.0.3**
+- Fixed another bug that caused script to exit earlier than intended before restoring primary monitor.
+
 **v2.0.2**
 - More bug fixes that prevented primary monitor from restoring after a stream was ended.
 
@@ -134,9 +137,5 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 **v1.1.9**  
 - Updated MultiMonitorTool to v2.10.
 - Improved validation for restoring primary monitors.
-
-**v1.1.8**  
-- Added debug logging.
-- Fixed monitor flicker issue related to known workarounds.
 
 ---

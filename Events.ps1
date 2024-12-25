@@ -18,10 +18,7 @@ if (-not $script:arguments) {
 
 $script:attempts = 0
 
-# Load settings from a JSON file located in the same directory as the script
-$settings = Get-Settings
 $configSaveLocation = [System.Environment]::ExpandEnvironmentVariables($settings.configSaveLocation)
-$dummyMonitorId = $settings.dummyMonitorId
 
 
 function OnStreamStart() {
@@ -35,7 +32,7 @@ function OnStreamStart() {
     # and a stream is initiated again, the display switcher built into windows (Windows + P) may not update and remain stuck on the last used setting.
     # This can cause significant problems in some games, including frozen visuals and black screens.    
     Write-Debug "Loading dummy monitor configuration from Dummy.xml"
-    & .\MonitorSwitcher.exe -load:Dummy.xml 
+    & .\MonitorSwitcher.exe -load:Dummy.xml | Out-Null
     Start-Sleep -Seconds 2
 
     for ($i = 0; $i -lt 6; $i++) {
@@ -43,7 +40,7 @@ function OnStreamStart() {
         $dummyMonitorId = Get-MonitorIdFromXML -filePath ".\Dummy.xml"
         if (-not (IsMonitorActive -monitorId $dummyMonitorId)) {
             Write-Debug "Dummy monitor is not active, reloading dummy configuration"
-            & .\MonitorSwitcher.exe -load:Dummy.xml 
+            & .\MonitorSwitcher.exe -load:Dummy.xml | Out-Null
         }
         else {
             Write-Debug "Dummy monitor is active, exiting loop"
@@ -59,7 +56,7 @@ function OnStreamStart() {
         Start-Sleep -Seconds 1
     }
 
-    Write-Output "Dummy plug activated"
+    Write-Host "Dummy plug activated"
     Write-Debug "Dummy plug activated successfully"
 }
 
@@ -95,6 +92,7 @@ function OnStreamEnd($kwargs) {
     catch {
         Write-Debug "Caught an exception, expected in cases like when the user has a TV as a primary display"
         # Do Nothing, because we're expecting it to fail in cases like when the user has a TV as a primary display.
+        return $false
     }
 
     # Return false by default if an exception occurs.
@@ -110,7 +108,7 @@ function IsMonitorActive($monitorId) {
     # Continually poll the configuration to ensure the display is fully updated.
     $filePath = "$configSaveLocation\current_monitor_config.xml"
     Write-Debug "Saving current monitor configuration to $filePath"
-    & .\MonitorSwitcher.exe -save:$filePath
+    & .\MonitorSwitcher.exe -save:$filePath | Out-Null
     Start-Sleep -Seconds 1
 
     $currentTime = Get-Date
@@ -186,7 +184,7 @@ function SetPrimaryScreen() {
     }
 
     Write-Debug "Loading primary monitor configuration from Primary.xml"
-    & .\MonitorSwitcher.exe -load:Primary.xml
+    & .\MonitorSwitcher.exe -load:Primary.xml | Out-Null
 
     Write-Debug "Sleeping for 3 seconds to allow configuration to take effect"
     Start-Sleep -Seconds 3
@@ -240,7 +238,7 @@ function IsPrimaryMonitorActive() {
     $filePath = "$configSaveLocation\current_monitor_config.xml"
 
     Write-Debug "Saving current monitor configuration to $filePath"
-    & .\MonitorSwitcher.exe -save:$filePath
+    & .\MonitorSwitcher.exe -save:$filePath | Out-Null
     Start-Sleep -Seconds 3
 
     $currentTime = Get-Date
@@ -267,16 +265,14 @@ function IsPrimaryMonitorActive() {
     [string[]]$currentProfile = Get-MonitorIdFromXML -filePath $filePath -as [string[]] 
     Write-Debug "Current monitor IDs: $currentProfile"
 
-
-
     $comparisonResults = Compare-Object $primaryProfile $currentProfile
 
     if ($null -ne $comparisonResults) {
         Write-Debug "Primary monitor IDs do not match current configuration. Returning false."
-        Write-Debug $comparisonResults
+        Write-Debug ($comparisonResults | Format-Table | Out-String)
         return $false
     }
-
+    
     Write-Debug "Primary monitor IDs match current configuration. Returning true."
     return $true
 }
