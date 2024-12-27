@@ -90,10 +90,14 @@ This tool automatically switches your main display to a dummy plug (or any virtu
         - Select the monitor to disconnect (e.g., monitor #2).
         - Use the dropdown menu to choose **Disconnect this display**.
         - Repeat until only the primary monitor is active.
-        - This is required in order to see the **Show only on {NUMBER}** options.
      4. Ensure you are remotely viewing the PC on another device before proceeding, as you will not be able to see the screen physically on this next step.
      5. In **Display settings**, set the dropdown to **Show only on {NUMBER}**, where `{NUMBER}` is the dummy/streaming monitor.
-     6. While at your computer confirm the display settings by clicking "Keep Changes", use your other device that is currently streaming for guidance on moving the mouse.
+     6. If you do not see **Show only on {NUMBER}**
+        - Select the dummy display, then click the dropdown and select "Extend desktop to this display"
+        - Select the dummy display again and expand the "Multiple Displays" group (if not already done)
+        - Click the "Make this my main display" checkbox
+        - Click your other monitor that was previously the main display, then click the dropdown again, then click "Disconnect this display".
+     7. While at your computer confirm the display settings by clicking "Keep Changes", use your other device that is currently streaming for guidance on moving the mouse.
 
 7. **Save Your “Dummy” Monitor Profile:**  
    - In the Terminal (still in the script’s folder), run the following command:
