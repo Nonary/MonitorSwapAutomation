@@ -112,6 +112,9 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
    Now, the script will automatically switch to the dummy display configuration when streaming and restore your original setup when you stop streaming.
 
+9. **24H2 Workaround Script:**
+   If you are using 24H2 and have troubles with Sunshine starting the stream due to 503 errors (missing output/encoder failure) you will need to install the 24H2 workaround script: https://github.com/Nonary/24H2DummyFix/releases/latest
+
 
 ## Troubleshooting
 
@@ -119,6 +122,9 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 - Increase the start delay in **settings.json** (located in the script’s folder) to 3 or 4 seconds. This will give more time for other scripts to run after the monitor has swapped.
 - For ResolutionAutomation, this is not necessary to do in most cases as it has a fallback to re-apply resolution multiple times.
+
+**Unable to start stream/503 encoder failure**
+If you are using 24H2 and have troubles with Sunshine starting the stream due to 503 errors (missing output/encoder failure) you will need to install the 24H2 workaround script: https://github.com/Nonary/24H2DummyFix/releases/latest
 
 ---
 
