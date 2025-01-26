@@ -68,7 +68,10 @@ function OnStreamEnd($kwargs) {
     try {
         # Check if the primary monitor is not active
         Write-Debug "Now attempting to restore the primary monitor"
-        SetPrimaryScreen
+        $succesfulChange = SetPrimaryScreen
+
+
+        
 
         if ((IsPrimaryMonitorActive)) {
             # Primary monitor is active, return true.
@@ -83,6 +86,12 @@ function OnStreamEnd($kwargs) {
                 # Output a message to the host indicating difficulty in restoring the display.
                 # This message is shown once initially, and then once every 10 minutes.
                 Write-Host "Failed to restore display(s), some displays require multiple attempts and may not restore until returning back to the computer. Trying again after 5 seconds... (this message will be suppressed to only show up once every 10-15 minutes)"
+            }
+
+            if(-not $succesfulChange) {
+                Write-Debug "Since the monitor switcher indicated that there was an error during the restoration of primary monitor, we are know going to revert back to the dummy profile."
+                Write-Debug "This fixes an issue on Windows 11 24H2, where DXGI could throw errors about pending display changes."
+                & .\MonitorSwitcher.exe -load:Dummy.xml | Out-Null
             }
 
             # Return false indicating the primary monitor is still not active.
@@ -184,12 +193,24 @@ function SetPrimaryScreen() {
     }
 
     Write-Debug "Loading primary monitor configuration from Primary.xml"
-    & .\MonitorSwitcher.exe -load:Primary.xml | Out-Null
+    $output = & .\MonitorSwitcher.exe -load:Primary.xml
+
+    Write-Debug "Output from loading primary monitor configuration: $output"
+
+    if($output -is [System.Array]) {
+        $changeFailed = $output[0].ToString().Contains("ERROR")
+        if ($changeFailed) {
+            Write-Debug "Failed to change primary monitor"
+            return $false
+        }
+    }
+
 
     Write-Debug "Sleeping for 3 seconds to allow configuration to take effect"
     Start-Sleep -Seconds 3
 
     Write-Debug "SetPrimaryScreen function completed"
+    return $true
 }
 
 function Get-MonitorIdFromXML($filePath) {

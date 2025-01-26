@@ -115,13 +115,18 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 ## Troubleshooting
 
-**If the ResolutionAutomation script doesn’t switch resolutions properly or is unreliable:**
+**If the ResolutionAutomation script doesn’t switch resolutions properly or you wish to run scripts after the monitor has swapped:**
 
-- Increase the start delay in **settings.json** (located in the script’s folder) to 3 or 4 seconds. This gives the monitor-switching process more time before the resolution change occurs.
+- Increase the start delay in **settings.json** (located in the script’s folder) to 3 or 4 seconds. This will give more time for other scripts to run after the monitor has swapped.
+- For ResolutionAutomation, this is not necessary to do in most cases as it has a fallback to re-apply resolution multiple times.
 
 ---
 
 ## Change Log
+
+**v2.0.4**
+- Improved compatibility for Windows 11 24H2, fixing a common scenario that caused Sunshine to be unable to find an output device.
+- Removed start delay, which will cause Moonlight to start the stream faster. If this causes issues, you can adjust the start delay back to 3 seconds.
 
 **v2.0.3**
 - Fixed another bug that caused script to exit earlier than intended before restoring primary monitor.
@@ -137,9 +142,5 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 **v1.2.0**  
 - Added changes to support Hybrid GPU fixes, assisting laptop users in forcing NVIDIA encoding.
-
-**v1.1.9**  
-- Updated MultiMonitorTool to v2.10.
-- Improved validation for restoring primary monitors.
 
 ---

@@ -1,6 +1,6 @@
 {
     "debug": false,
-    "startDelay": 4,
+    "startDelay": 0,
     "gracePeriod": 900,
     "configSaveLocation": "%TEMP%",
     "installationOrderPreferences": {
