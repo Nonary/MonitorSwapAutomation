@@ -130,6 +130,9 @@ If you are using 24H2 and have troubles with Sunshine starting the stream due to
 
 ## Change Log
 
+**v2.0.5**
+- Upgraded script to latest version of [Sunshine Script Intaller](https://github.com/Nonary/SunshineScriptInstaller) which has performance improvements.
+
 **v2.0.4**
 - Improved compatibility for Windows 11 24H2, fixing a common scenario that caused Sunshine to be unable to find an output device.
 - Removed start delay, which will cause Moonlight to start the stream faster. If this causes issues, you can adjust the start delay back to 3 seconds.
@@ -145,8 +148,5 @@ If you are using 24H2 and have troubles with Sunshine starting the stream due to
 
 **v2.0.0**  
 - Switched from Nirsoft MultiMonitorTool to MonitorSwitcher for better compatibility with Windows 24H2 and improved reliability.
-
-**v1.2.0**  
-- Added changes to support Hybrid GPU fixes, assisting laptop users in forcing NVIDIA encoding.
 
 ---

@@ -201,6 +201,47 @@ function Get-Settings {
     }
 }
 
+function Update-JsonProperty {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$Property,
+        
+        [Parameter(Mandatory = $true)]
+        [object]$NewValue
+    )
+
+    # Read the file as a single string.
+    $content = Get-Content -Path $FilePath -Raw
+
+    if ($NewValue -is [string]) {
+        # Convert the string to a JSON-compliant string.
+        # ConvertTo-Json will take care of escaping characters properly.
+        $formattedValue = (ConvertTo-Json $NewValue -Compress)
+    }
+    else {
+        $formattedValue = $NewValue.ToString()
+    }
+
+    # Build a regex pattern for matching the property.
+    $escapedProperty = [regex]::Escape($Property)
+    $pattern = '"' + $escapedProperty + '"\s*:\s*[^,}\r\n]+'
+
+    # Build the replacement string.
+    $replacement = '"' + $Property + '": ' + $formattedValue
+
+    # Replace the matching part in the content.
+    $updatedContent = [regex]::Replace($content, $pattern, { param($match) $replacement })
+
+    # Write the updated content back.
+    Set-Content -Path $FilePath -Value $updatedContent
+}
+
+
+
 function Wait-ForStreamEndJobToComplete() {
     $job = OnStreamEndAsJob
     while ($job.State -ne "Completed") {

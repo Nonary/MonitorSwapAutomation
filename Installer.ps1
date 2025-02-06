@@ -73,6 +73,7 @@ function Test-AndRequest-SunshineConfig {
         
 # Define the path to the Sunshine configuration file
 $confPath = Test-AndRequest-SunshineConfig -InitialPath  "C:\Program Files\Sunshine\config\sunshine.conf"
+Update-JsonProperty -FilePath "./settings.json" -Property "sunshineConfigPath" -NewValue $confPath
 $scriptRoot = Split-Path $scriptPath -Parent
 
 
@@ -213,7 +214,7 @@ function Add-Command {
     $command = [PSCustomObject]@{
         do       = "powershell.exe -executionpolicy bypass -file `"$($scriptPath)`" -n $scriptName"
         elevated = "false"
-        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\Helpers.ps1`" -n $scriptName -t 1"
+        undo     = "powershell.exe -executionpolicy bypass -file `"$($scriptRoot)\UndoScript.ps1`" -n $scriptName"
     }
 
     # Add the new object to the global_prep_cmd array
@@ -237,6 +238,6 @@ Set-GlobalPrepCommand $commands
 
 $sunshineService = Get-Service -ErrorAction Ignore | Where-Object { $_.Name -eq 'sunshinesvc' -or $_.Name -eq 'SunshineService' }
 # In order for the commands to apply we have to restart the service
-$sunshineService | Restart-Service  -WarningAction SilentlyContinue
+# $sunshineService | Restart-Service  -WarningAction SilentlyContinue
 Write-Host "If you didn't see any errors, that means the script installed without issues! You can close this window."
 
