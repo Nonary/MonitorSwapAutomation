@@ -79,7 +79,7 @@ try {
                     return $commands
                 }
                 catch {
-                    Write-Error "Failed to parse global_prep_cmd JSON from $ConfigPath: $_"
+                    Write-Error "Failed to parse global_prep_cmd JSON from ${ConfigPath}: $_"
                     return @()
                 }
             }
