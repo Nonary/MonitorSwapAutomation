@@ -61,6 +61,41 @@ This tool automatically switches your main display to a dummy plug (or any virtu
 
 ## Step-by-Step Setup for Monitor Configuration
 
+
+---
+# Vibeshine
+
+Vibeshine is a custom fork of Sunshine that makes display swaps smoother and more reliable as well as add exclusive features like Playnite integration, Windows Graphic Capture in Service mode and more!
+
+It prevents issues like the dummy plug sticking after reboots or disconnects, so your monitor settings always restore correctly.
+
+You can download it here: [Vibeshine](https://github.com/Nonary/vibeshine)
+
+## Setup Steps
+
+1. **Open Configuration**
+   - In the Vibeshine Web UI, click **Configuration** on the top navigation bar.
+
+2. **Adjust Display Settings**
+   - Expand the **Audio/Video** section.  
+   - Under **Display Setup (Before Stream):**
+     - **Step 1:** Use the dropdown to select the monitor you want Vibeshine to switch to when streaming.  
+     - **Step 2:** Choose **Deactivate other displays and activate only the specified display.**
+
+3. **(Optional but Recommended)**
+   - Create a snapshot of your current display settings.  
+     This helps Vibeshine restore everything correctly if something goes wrong.
+
+✅ That’s it — you’re ready to stream with Vibeshine!
+
+NOTE: You do not need to use this script after installing Vibeshine, but I am still maintaining it for users who rather remain on Sunshine or Apollo.
+
+---
+
+
+---
+# Sunshine/Apollo Instructions
+
 1. **Sunshine Output Settings:**  
    - In the Sunshine Web UI, ensure the “Output Name” field is blank under **Audio/Video settings**.
 
